@@ -1,0 +1,128 @@
+/* ===== Toast ===== */
+function toast(message, type = 'info', duration = 3000) {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  const icon = type === 'success'
+    ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
+    : type === 'error'
+    ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`
+    : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+  el.innerHTML = `${icon}<span>${message}</span>`;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('leaving');
+    setTimeout(() => el.remove(), 300);
+  }, duration);
+}
+
+/* ===== Modal Confirm ===== */
+function confirmAction({ title = '确认操作', message = '', confirmText = '确认', requiredInput = null, onConfirmDanger = false } = {}) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('confirm-modal');
+    const titleEl = document.getElementById('confirm-title');
+    const msgEl = document.getElementById('confirm-message');
+    const inputWrap = document.getElementById('confirm-input-wrap');
+    const inputEl = document.getElementById('confirm-input');
+    const okBtn = document.getElementById('confirm-ok');
+    const cancelBtn = document.getElementById('confirm-cancel');
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    okBtn.textContent = confirmText;
+    okBtn.className = onConfirmDanger ? 'danger' : '';
+    inputWrap.style.display = requiredInput ? 'block' : 'none';
+    inputEl.value = '';
+
+    function cleanup() {
+      modal.style.display = 'none';
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+      inputEl.onkeydown = null;
+    }
+
+    okBtn.onclick = () => {
+      if (requiredInput) {
+        if (inputEl.value.trim() !== requiredInput) {
+          toast(`请输入 "${requiredInput}" 以确认`, 'error');
+          inputEl.focus();
+          return;
+        }
+      }
+      cleanup();
+      resolve(true);
+    };
+
+    cancelBtn.onclick = () => { cleanup(); resolve(false); };
+    inputEl.onkeydown = (e) => { if (e.key === 'Enter') okBtn.click(); };
+
+    modal.style.display = 'flex';
+    if (requiredInput) setTimeout(() => inputEl.focus(), 50);
+  });
+}
+
+/* ===== Button Loading ===== */
+function setLoading(btn, loading = true, originalText = null) {
+  if (!btn) return;
+  if (loading) {
+    if (originalText !== null) btn.dataset.originalText = originalText;
+    const text = btn.dataset.originalText || btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner ${btn.classList.contains('secondary') ? 'spinner-secondary' : ''}"></span><span>${text}</span>`;
+  } else {
+    const text = btn.dataset.originalText || btn.textContent;
+    btn.disabled = false;
+    btn.textContent = text;
+  }
+}
+
+/* ===== Sidebar active state ===== */
+function highlightNav() {
+  const path = window.location.pathname;
+  document.querySelectorAll('.nav-link').forEach(link => {
+    const navPath = link.dataset.nav;
+    if (navPath === path || (navPath !== '/' && path.startsWith(navPath))) {
+      link.classList.add('is-active');
+    } else {
+      link.classList.remove('is-active');
+    }
+  });
+}
+
+/* ===== Tabs ===== */
+function initTabs(container) {
+  const tabs = container.querySelectorAll('.tab');
+  const panels = container.querySelectorAll('.tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.remove('is-active'));
+      panels.forEach(p => p.classList.remove('is-active'));
+      tab.classList.add('is-active');
+      const panel = container.querySelector(`.tab-panel[data-tab-panel="${target}"]`);
+      if (panel) panel.classList.add('is-active');
+    });
+  });
+  if (tabs.length && !container.querySelector('.tab.is-active')) {
+    tabs[0].click();
+  }
+}
+
+/* ===== Fetch helpers ===== */
+async function postJSON(url, body) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = response.headers.get('content-type')?.includes('application/json')
+    ? await response.json()
+    : {};
+  return { response, data };
+}
+
+/* ===== Init ===== */
+document.addEventListener('DOMContentLoaded', () => {
+  highlightNav();
+  document.querySelectorAll('.tabs-container').forEach(initTabs);
+});

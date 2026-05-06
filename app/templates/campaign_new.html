@@ -1,0 +1,125 @@
+{% extends "_layout.html" %}
+
+{% block title %}创建调研任务 - Email Assist{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">New Campaign</p>
+    <h1>创建调研任务</h1>
+    <p class="meta">填写邮件、收件人和附件，保存后再进入详情页发送。</p>
+  </div>
+  <a class="button secondary" href="/">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    返回列表
+  </a>
+</header>
+
+<form id="campaign-form" class="panel panel-pad" method="post" action="/campaigns" enctype="multipart/form-data">
+  <div class="form-grid">
+    <div>
+      <label for="name">任务名称</label>
+      <input id="name" name="name" required placeholder="2026-05 供应商询价">
+    </div>
+    <div>
+      <label for="subject">邮件主题</label>
+      <input id="subject" name="subject" required placeholder="询价调研">
+    </div>
+    <div>
+      <label for="deadline">截止时间</label>
+      <input id="deadline" name="deadline" type="datetime-local" required>
+    </div>
+    <div>
+      <label for="attachments">任务附件</label>
+      <div class="file-drop" id="file-drop">
+        <div class="file-drop-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 15c.7-1.2 1-2.5.7-3.9-.6-2.5-2.8-4.4-5.4-4.4a5.8 5.8 0 0 0-4.1 1.7l-7.2 7.2a3.9 3.9 0 0 0 0 5.5 3.9 3.9 0 0 0 5.5 0l7.2-7.2c.8-.8 2.1-.8 2.9 0 .8.8.8 2.1 0 2.9l-7.2 7.2a6.8 6.8 0 0 1-9.6 0 6.8 6.8 0 0 1 0-9.6l7.2-7.2a8.8 8.8 0 0 1 12.4 0 8.8 8.8 0 0 1 0 12.4l-7.2 7.2"/></svg>
+        </div>
+        <p style="margin:0;font-weight:600;font-size:.9rem">点击或拖拽文件至此</p>
+        <p class="hint" style="margin-top:4px">这些附件会随每封外部邮件一起发送</p>
+        <input id="attachments" name="attachments" type="file" multiple style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
+      </div>
+      <div id="file-list" class="hint" style="margin-top:8px"></div>
+    </div>
+    <div class="form-row-full">
+      <label for="recipients_text">外部收件人</label>
+      <textarea id="recipients_text" name="recipients_text" placeholder="vendor@example.com,供应商A,张三&#10;another@example.com,供应商B"></textarea>
+      <p class="hint">每行一个收件人，格式：邮箱,公司,姓名；公司和姓名可省略。<span id="recipient-count" style="margin-left:8px;font-weight:700;color:var(--primary)"></span></p>
+    </div>
+    <div class="form-row-full">
+      <label for="recipients_file">导入收件人文件</label>
+      <input id="recipients_file" name="recipients_file" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+      <p class="hint">支持 CSV/XLSX。表头可使用 email/邮箱、company/公司、name/联系人；与上方粘贴内容重复时，以粘贴内容为准。</p>
+    </div>
+    <div>
+      <label for="cc">全局 CC</label>
+      <input id="cc" name="cc" placeholder="team@example.com, manager@example.com">
+    </div>
+    <div>
+      <label for="bcc">全局 BCC</label>
+      <input id="bcc" name="bcc" placeholder="archive@example.com">
+    </div>
+    <div class="form-row-full">
+      <label for="body_template">邮件正文模板</label>
+      <textarea id="body_template" name="body_template" required>您好 {company}，请协助反馈本次调研/询价信息，谢谢。</textarea>
+      <p class="hint">可用变量：<code>{company}</code>、<code>{name}</code>、<code>{email}</code></p>
+    </div>
+  </div>
+  <div class="actions" style="margin-top:22px">
+    <button type="submit">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      保存任务
+    </button>
+    <a class="button secondary" href="/">返回</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  const dropZone = document.getElementById('file-drop');
+  const fileInput = document.getElementById('attachments');
+  const fileList = document.getElementById('file-list');
+
+  function updateFileList() {
+    const files = fileInput.files;
+    if (!files.length) { fileList.textContent = ''; return; }
+    const names = Array.from(files).map(f => f.name).join('、');
+    fileList.innerHTML = `已选择 <strong>${files.length}</strong> 个文件：${names}`;
+  }
+
+  fileInput.addEventListener('change', updateFileList);
+
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('is-dragover');
+  });
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('is-dragover');
+  });
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('is-dragover');
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      updateFileList();
+    }
+  });
+
+  const recipientsText = document.getElementById('recipients_text');
+  const recipientCount = document.getElementById('recipient-count');
+  const recipientsFile = document.getElementById('recipients_file');
+  function countRecipients() {
+    const lines = recipientsText.value.split('\n').filter(l => l.trim());
+    const fileHint = recipientsFile.files.length ? `，另有导入文件 ${recipientsFile.files[0].name}` : '';
+    recipientCount.textContent = lines.length || fileHint ? `已粘贴 ${lines.length} 位收件人${fileHint}` : '';
+  }
+  recipientsText.addEventListener('input', countRecipients);
+  recipientsFile.addEventListener('change', countRecipients);
+
+  document.getElementById('campaign-form').addEventListener('submit', (e) => {
+    const btn = e.submitter;
+    if (btn && btn.tagName === 'BUTTON') setLoading(btn, true, '保存中');
+  });
+</script>
+{% endblock %}

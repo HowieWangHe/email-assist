@@ -1,0 +1,185 @@
+{% extends "_layout.html" %}
+
+{% block title %}调研任务 - Email Assist{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Campaigns</p>
+    <h1>调研任务</h1>
+    <p class="meta">集中管理发信、回执、附件和导出状态。</p>
+  </div>
+  <div class="toolbar">
+    <a class="button" href="/campaigns/new">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      创建调研任务
+    </a>
+    <a class="button secondary" href="/settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      设置
+    </a>
+  </div>
+</header>
+
+<div class="stats-grid">
+  <div class="stat-card primary">
+    <div class="stat-value">{{ campaigns | length }}</div>
+    <div class="stat-label">活跃任务</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ archived_campaigns | length }}</div>
+    <div class="stat-label">已归档</div>
+  </div>
+</div>
+
+<section class="panel table-wrap">
+  <div class="section-head">
+    <h2>活跃任务</h2>
+    <p class="hint">需要继续发送、收取回复或处理资料的任务。</p>
+  </div>
+  <table>
+    <thead>
+      <tr><th>任务</th><th>主题</th><th>创建时间</th><th>截止时间</th><th>状态</th><th style="width:140px">操作</th></tr>
+    </thead>
+    <tbody>
+      {% for campaign in campaigns %}
+      <tr data-campaign-row="{{ campaign.id }}">
+        <td><a href="/campaigns/{{ campaign.id }}">{{ campaign.name }}</a></td>
+        <td>{{ campaign.subject }}</td>
+        <td>{{ campaign.created_at }}</td>
+        <td>{{ campaign.deadline }}</td>
+        <td>
+          <span class="status-pill {{ campaign.status }}">{{ campaign.status }}</span>
+          {% if reminder_counts.get(campaign.id, 0) %}
+          <span class="status-pill reminded">待提醒 {{ reminder_counts.get(campaign.id, 0) }}</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="row-actions">
+            <button class="secondary small archive-campaign" type="button" data-campaign-id="{{ campaign.id }}">归档</button>
+            <button class="danger secondary small delete-campaign" type="button" data-campaign-id="{{ campaign.id }}">删除</button>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6">
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <p class="empty-state-title">暂无活跃任务</p>
+            <p class="empty-state-desc">点击右上角创建调研任务，开始收集邮件回执。</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel table-wrap archived-section">
+  <div class="section-head">
+    <h2>已归档</h2>
+    <p class="hint">已归档任务保留资料和导出能力，不参与活跃追踪。</p>
+  </div>
+  <table>
+    <thead>
+      <tr><th>任务</th><th>主题</th><th>归档前状态</th><th>归档时间</th><th style="width:140px">操作</th></tr>
+    </thead>
+    <tbody>
+      {% for campaign in archived_campaigns %}
+      <tr data-campaign-row="{{ campaign.id }}">
+        <td><a href="/campaigns/{{ campaign.id }}">{{ campaign.name }}</a></td>
+        <td>{{ campaign.subject }}</td>
+        <td><span class="status-pill {{ campaign.status_before_archive or '' }}">{{ campaign.status_before_archive or "—" }}</span></td>
+        <td>{{ campaign.archived_at or "—" }}</td>
+        <td>
+          <div class="row-actions">
+            <button class="secondary small unarchive-campaign" type="button" data-campaign-id="{{ campaign.id }}">取消归档</button>
+            <button class="danger secondary small delete-campaign" type="button" data-campaign-id="{{ campaign.id }}">删除</button>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5">
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <p class="empty-state-title">暂无归档任务</p>
+            <p class="empty-state-desc">归档后的任务会显示在这里。</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  document.querySelectorAll('.archive-campaign').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const campaignId = button.dataset.campaignId;
+      const ok = await confirmAction({
+        title: '归档任务',
+        message: '归档后该任务将暂停发送与追踪，资料仍然保留。输入 ARCHIVE 确认。',
+        confirmText: '确认归档',
+        requiredInput: 'ARCHIVE',
+      });
+      if (!ok) return;
+      setLoading(button, true, '归档中');
+      const { response } = await postJSON(`/api/campaigns/${campaignId}/archive`, { confirm: 'ARCHIVE' });
+      if (!response.ok) {
+        toast('归档失败', 'error');
+        setLoading(button, false);
+        return;
+      }
+      toast('已归档', 'success');
+      setTimeout(() => window.location.reload(), 400);
+    });
+  });
+
+  document.querySelectorAll('.unarchive-campaign').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const campaignId = button.dataset.campaignId;
+      setLoading(button, true, '恢复中');
+      const { response } = await postJSON(`/api/campaigns/${campaignId}/unarchive`, {});
+      if (!response.ok) {
+        toast('取消归档失败', 'error');
+        setLoading(button, false);
+        return;
+      }
+      toast('已恢复', 'success');
+      setTimeout(() => window.location.reload(), 400);
+    });
+  });
+
+  document.querySelectorAll('.delete-campaign').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const campaignId = button.dataset.campaignId;
+      const ok = await confirmAction({
+        title: '删除任务',
+        message: '此操作将删除该任务及所有本地资料，不可恢复。输入 DELETE 确认。',
+        confirmText: '确认删除',
+        requiredInput: 'DELETE',
+        onConfirmDanger: true,
+      });
+      if (!ok) return;
+      setLoading(button, true, '删除中');
+      const { response } = await postJSON(`/api/campaigns/${campaignId}`, { confirm: 'DELETE' });
+      if (!response.ok) {
+        toast('删除失败', 'error');
+        setLoading(button, false);
+        return;
+      }
+      toast('已删除', 'success');
+      const row = document.querySelector(`[data-campaign-row="${campaignId}"]`);
+      if (row) row.remove();
+    });
+  });
+</script>
+{% endblock %}
