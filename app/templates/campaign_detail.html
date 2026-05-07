@@ -5,53 +5,48 @@
 {% block content %}
 <div class="sticky-header">
   <header class="page-header" style="margin-bottom:0">
-    <div>
+    <div class="page-header-left">
       <p class="eyebrow">Campaign Detail</p>
       <h1>{{ campaign.name }}</h1>
-      <p class="meta">{{ campaign.subject }} · {{ campaign.deadline }} · <span class="status-pill {{ campaign.status }}">{{ campaign.status }}</span></p>
+      <p class="meta">
+        {{ campaign.subject }} · {{ campaign.deadline }}
+        <span class="status-pill {{ campaign.status }}">{{ campaign.status }}</span>
+      </p>
       {% if campaign.status == "archived" %}
-      <p class="archive-note">已归档任务只允许查看和导出资料；取消归档后可继续发送、收取和处理。</p>
+      <p class="archive-note">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        已归档任务只允许查看和导出资料；取消归档后可继续发送、收取和处理。
+      </p>
       {% endif %}
     </div>
     <div class="detail-actions">
-      <div class="action-group">
-        <span class="action-label">导航</span>
-        <a class="button secondary small" href="/">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-          返回
-        </a>
-        {% if campaign.status == "archived" %}
-        <button id="unarchive-button" type="button" class="secondary small">取消归档</button>
-        {% endif %}
-      </div>
       {% if campaign.status != "archived" %}
-      <div class="action-group">
-        <span class="action-label">发送与追踪</span>
+      <div class="toolbar">
         <button id="send-button" type="button" class="small">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          发送未发收件人
+          发送未发
         </button>
         <button id="refresh-button" type="button" class="secondary small">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
-          收取并匹配回复
+          同步回复
         </button>
       </div>
       {% else %}
-      <div class="action-group">
-        <span class="action-label">只读</span>
-        <span class="status-pill archived">可查看与导出</span>
-      </div>
+      <button id="unarchive-button" type="button" class="secondary small">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        取消归档
+      </button>
       {% endif %}
     </div>
   </header>
 </div>
 
-<div class="stats-grid" style="margin-top:8px">
-  <div class="stat-card primary">
+<div class="stats-grid" style="margin-top:4px">
+  <div class="stat-card">
     <div class="stat-value">{{ recipients | length }}</div>
     <div class="stat-label">收件人总数</div>
   </div>
-  <div class="stat-card success">
+  <div class="stat-card primary">
     <div class="stat-value">{{ recipients | selectattr("status", "equalto", "replied") | list | length }}</div>
     <div class="stat-label">已回复</div>
   </div>
@@ -74,26 +69,28 @@
 </div>
 
 {% if due_reminders %}
-<section class="panel table-wrap" style="margin-top:20px">
-  <div class="section-head">
-    <h2>待提醒收件人</h2>
-    <p class="hint">任务已进入截止前 6 小时提醒窗口。发送提醒后会记录提醒时间，并避免重复提醒。</p>
+<section class="panel" style="margin-top:16px">
+  <div class="section-head-inline">
+    <div>
+      <h2>待提醒</h2>
+      <p class="hint">截止前 6 小时提醒窗口，发送提醒后自动避免重复。</p>
+    </div>
+    <button id="reminder-button" type="button" class="secondary small">发送提醒</button>
   </div>
-  <table>
-    <thead><tr><th>邮箱</th><th>公司</th><th>提醒策略</th><th>操作</th></tr></thead>
-    <tbody>
-      {% for item in due_reminders %}
-      <tr>
-        <td class="cell-mono">{{ item.recipient.email }}</td>
-        <td>{{ item.recipient.company or "—" }}</td>
-        <td>{{ item.action }}</td>
-        {% if loop.first %}
-        <td rowspan="{{ due_reminders | length }}"><button id="reminder-button" type="button" class="secondary small">发送提醒邮件</button></td>
-        {% endif %}
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>邮箱</th><th>公司</th><th>策略</th></tr></thead>
+      <tbody>
+        {% for item in due_reminders %}
+        <tr>
+          <td class="cell-mono">{{ item.recipient.email }}</td>
+          <td>{{ item.recipient.company or "—" }}</td>
+          <td>{{ item.action }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
 {% endif %}
 
@@ -101,271 +98,358 @@
   <div class="tabs">
     <button class="tab is-active" data-tab="recipients">
       收件人状态
-      <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ recipients | length }}</span>
+      <span class="tab-badge">{{ recipients | length }}</span>
     </button>
-    <button class="tab" data-tab="replies">回复 <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ received_messages | length + review_messages | length }}</span></button>
-    <button class="tab" data-tab="attachments">附件与资料 <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ (attachments | length) + (received_attachments | length) + (extraction_records | length) }}</span></button>
-    <button class="tab" data-tab="sent">发送记录 <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ sent_messages | length }}</span></button>
+    <button class="tab" data-tab="replies">
+      回复
+      <span class="tab-badge">{{ received_messages | length + review_messages | length }}</span>
+    </button>
+    <button class="tab" data-tab="attachments">
+      附件与资料
+      <span class="tab-badge">{{ (attachments | length) + (received_attachments | length) + (extraction_records | length) }}</span>
+    </button>
+    <button class="tab" data-tab="sent">
+      发送记录
+      <span class="tab-badge">{{ sent_messages | length }}</span>
+    </button>
   </div>
 
   <div class="tab-panel is-active" data-tab-panel="recipients">
     {% if campaign.status != "archived" %}
-    <section class="panel panel-pad compact-form-panel">
-      <div class="section-head inline-head">
+    <section class="panel compact-form-panel">
+      <div class="section-head-inline">
         <div>
           <h2>追加收件人</h2>
-          <p class="hint">新增收件人会以草稿状态加入当前任务，之后点击「发送未发收件人」即可补发。</p>
+          <p class="hint">新增收件人以草稿状态加入，之后点击「发送未发」即可补发。</p>
         </div>
       </div>
-      <form id="append-recipients-form" method="post" action="/campaigns/{{ campaign.id }}/recipients" enctype="multipart/form-data" class="append-grid">
-        <div>
-          <label for="append-recipients-text">手动输入</label>
-          <textarea id="append-recipients-text" name="recipients_text" placeholder="new@example.com,供应商C,王五"></textarea>
-        </div>
-        <div>
-          <label for="append-recipients-file">导入文件</label>
-          <input id="append-recipients-file" name="recipients_file" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-          <p class="hint">支持 CSV/XLSX；重复邮箱会自动跳过，不影响既有收件人状态。</p>
-          <button type="submit" class="small" style="margin-top:12px">追加到任务</button>
-        </div>
-      </form>
+      <div class="panel-pad" style="padding-top:0">
+        <form id="append-recipients-form" method="post" action="/campaigns/{{ campaign.id }}/recipients" enctype="multipart/form-data" class="append-grid">
+          <div>
+            <label for="append-recipients-text">手动输入</label>
+            <textarea id="append-recipients-text" name="recipients_text" placeholder="new@example.com,供应商C,王五"></textarea>
+          </div>
+          <div>
+            <label for="append-recipients-file">导入文件</label>
+            <input id="append-recipients-file" name="recipients_file" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+            <p class="hint">支持 CSV/XLSX；重复邮箱自动跳过。</p>
+            <button type="submit" class="small" style="margin-top:10px">追加到任务</button>
+          </div>
+        </form>
+      </div>
     </section>
     {% endif %}
 
-    <section class="panel table-wrap">
-      <table>
-        <thead>
-          <tr><th>邮箱</th><th>公司</th><th>姓名</th><th>状态</th><th>发送时间</th><th>错误</th></tr>
-        </thead>
-        <tbody>
-          {% for recipient in recipients %}
-          <tr>
-            <td class="cell-mono">{{ recipient.email }}</td>
-            <td>{{ recipient.company or "—" }}</td>
-            <td>{{ recipient.name or "—" }}</td>
-            <td><span class="status-pill {{ recipient.status }}">{{ recipient.status }}</span></td>
-            <td>{{ recipient.sent_at or "—" }}</td>
-            <td>{% if recipient.error %}<span style="color:var(--danger);font-size:.82rem">{{ recipient.error }}</span>{% else %}—{% endif %}</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="6">
-            <div class="empty-state">
-              <p class="empty-state-title">暂无收件人</p>
-            </div>
-          </td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <section class="panel">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>邮箱</th><th>公司</th><th>姓名</th><th style="width:90px">状态</th><th style="width:14%">发送时间</th><th style="min-width:120px">错误</th></tr>
+          </thead>
+          <tbody>
+            {% for recipient in recipients %}
+            <tr>
+              <td class="cell-mono">{{ recipient.email }}</td>
+              <td>{{ recipient.company or "—" }}</td>
+              <td>{{ recipient.name or "—" }}</td>
+              <td><span class="status-pill {{ recipient.status }}">{{ recipient.status }}</span></td>
+              <td>{{ recipient.sent_at or "—" }}</td>
+              <td>{% if recipient.error %}<span style="color:var(--danger);font-size:12px">{{ recipient.error }}</span>{% else %}—{% endif %}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">
+              <div class="empty-state">
+                <p class="empty-state-title">暂无收件人</p>
+                <p class="empty-state-desc">在上方追加收件人或重新创建任务。</p>
+              </div>
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </section>
   </div>
 
   <div class="tab-panel" data-tab-panel="sent">
-    <section class="panel table-wrap">
-      <table>
-        <thead><tr><th>已发送收件人</th><th>主题</th><th>Message-ID</th></tr></thead>
-        <tbody>
-          {% for message in sent_messages %}
-          <tr>
-            <td>{{ message.recipient_email }}</td>
-            <td>{{ message.subject }}</td>
-            <td class="cell-mono cell-truncate" title="{{ message.message_id }}">{{ message.message_id }}</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="3">
-            <div class="empty-state">
-              <p class="empty-state-title">暂无发送记录</p>
-              <p class="empty-state-desc">点击上方「发送未发收件人」开始发送。</p>
-            </div>
-          </td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <section class="panel">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:30%">已发送收件人</th><th>主题</th><th style="width:35%">Message-ID</th></tr></thead>
+          <tbody>
+            {% for message in sent_messages %}
+            <tr>
+              <td>{{ message.recipient_email }}</td>
+              <td>{{ message.subject }}</td>
+              <td class="cell-mono cell-truncate" title="{{ message.message_id }}">{{ message.message_id }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3">
+              <div class="empty-state">
+                <p class="empty-state-title">暂无发送记录</p>
+                <p class="empty-state-desc">点击上方「发送未发」开始发送。</p>
+              </div>
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </section>
   </div>
 
   <div class="tab-panel" data-tab-panel="replies">
-    <section class="panel table-wrap">
-      <div class="section-head"><h2>已匹配回复</h2></div>
-      <table>
-        <thead><tr><th>回复发件人</th><th>主题</th><th>摘要</th><th>置信度</th><th>操作</th></tr></thead>
-        <tbody>
-          {% for message in received_messages %}
-          <tr>
-            <td>{{ message.from_email }}</td>
-            <td>{{ message.subject }}</td>
-            <td class="summary-cell">{{ message.body_summary or "—" }}</td>
-            <td>{{ message.confidence }}</td>
-            <td>
-              <div class="file-actions">
-                <button class="secondary small preview-message" type="button" data-message-id="{{ message.id }}">预览正文</button>
-                <button class="secondary small open-message" type="button" data-message-id="{{ message.id }}">本地打开</button>
+    <section class="panel">
+      <div class="section-head-inline">
+        <h2>已匹配回复</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:22%">发件人</th><th>主题</th><th>摘要</th><th style="width:80px">置信度</th><th style="width:130px"></th></tr></thead>
+          <tbody>
+            {% for message in received_messages %}
+            <tr>
+              <td>{{ message.from_email }}</td>
+              <td>{{ message.subject }}</td>
+              <td class="summary-cell">{{ message.body_summary or "—" }}</td>
+              <td>{{ message.confidence }}</td>
+              <td>
+                <div class="file-actions">
+                  <button class="secondary small preview-message" type="button" data-message-id="{{ message.id }}">预览</button>
+                  <button class="secondary small open-message" type="button" data-message-id="{{ message.id }}">本地打开</button>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">
+              <div class="empty-state">
+                <p class="empty-state-title">暂无回复</p>
+                <p class="empty-state-desc">点击「同步回复」从收件箱拉取。</p>
               </div>
-            </td>
-          </tr>
-          {% else %}
-          <tr><td colspan="5">
-            <div class="empty-state">
-              <p class="empty-state-title">暂无回复</p>
-              <p class="empty-state-desc">点击「收取并匹配回复」从收件箱拉取。</p>
-            </div>
-          </td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </section>
 
-    <section class="panel table-wrap" style="margin-top:20px">
-      <div class="section-head"><h2>待认领回复</h2></div>
-      <table>
-        <thead><tr><th>待认领发件人</th><th>主题</th><th>Message-ID</th><th>归属收件人</th><th style="width:110px">操作</th></tr></thead>
-        <tbody>
-          {% for message in review_messages %}
-          <tr data-review-row="{{ message.id }}">
-            <td>{{ message.from_email }}</td>
-            <td>{{ message.subject }}</td>
-            <td class="cell-mono cell-truncate" title="{{ message.message_id }}">{{ message.message_id }}</td>
-            <td>
-              <select class="claim-recipient" style="min-width:160px;font-size:.85rem;padding:6px 8px">
-                {% for recipient in recipients %}
-                <option value="{{ recipient.id }}">{{ recipient.email }}</option>
-                {% endfor %}
-              </select>
-            </td>
-            <td><button class="secondary small claim-button" type="button">认领为回复</button></td>
-          </tr>
-          {% else %}
-          <tr><td colspan="5">
-            <div class="empty-state">
-              <p class="empty-state-title">暂无待认领回复</p>
-            </div>
-          </td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <section class="panel" style="margin-top:16px">
+      <div class="section-head-inline">
+        <h2>待认领回复</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:22%">发件人</th><th>主题</th><th style="width:30%">Message-ID</th><th>归属收件人</th><th style="width:80px"></th></tr></thead>
+          <tbody>
+            {% for message in review_messages %}
+            <tr data-review-row="{{ message.id }}">
+              <td>{{ message.from_email }}</td>
+              <td>{{ message.subject }}</td>
+              <td class="cell-mono cell-truncate" title="{{ message.message_id }}">{{ message.message_id }}</td>
+              <td>
+                <select class="claim-recipient" style="min-width:160px;font-size:12px;padding:5px 8px">
+                  {% for recipient in recipients %}
+                  <option value="{{ recipient.id }}">{{ recipient.email }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td><button class="secondary small claim-button" type="button">认领</button></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">
+              <div class="empty-state">
+                <p class="empty-state-title">暂无待认领</p>
+              </div>
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </section>
   </div>
 
   <div class="tab-panel" data-tab-panel="attachments">
-    <section class="panel table-wrap">
-      <div class="section-head"><h2>任务附件</h2></div>
-      <table>
-        <thead><tr><th>文件名</th><th>类型</th><th>操作</th></tr></thead>
-        <tbody>
-          {% for attachment in attachments %}
-          <tr>
-            <td>{{ attachment.filename }}</td>
-            <td><span class="status-pill" style="font-size:.72rem">{{ attachment.content_type }}</span></td>
-            <td>
-              <div class="file-actions">
-                <button class="secondary small preview-file" type="button" data-preview-url="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/preview" data-view-url="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/view" data-title="{{ attachment.filename }}">预览</button>
-                <button class="secondary small open-file" type="button" data-open-url="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/open">本地打开</button>
+    <section class="panel">
+      <div class="section-head-inline">
+        <h2>任务附件</h2>
+        <p class="hint">随邮件一起发送的附件。</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>文件名</th><th style="width:120px">类型</th><th style="width:130px"></th></tr></thead>
+          <tbody>
+            {% for attachment in attachments %}
+            <tr>
+              <td>{{ attachment.filename }}</td>
+              <td><span class="status-pill" style="font-size:10px">{{ attachment.content_type }}</span></td>
+              <td>
+                <div class="file-actions">
+                  <button class="secondary small preview-file" type="button" data-preview-url="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/preview" data-view-url="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/view" data-title="{{ attachment.filename }}">预览</button>
+                  <button class="secondary small open-file" type="button" data-open-url="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/open">本地打开</button>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3">
+              <div class="empty-state">
+                <p class="empty-state-title">暂无任务附件</p>
               </div>
-            </td>
-          </tr>
-          {% else %}
-          <tr><td colspan="3">
-            <div class="empty-state">
-              <p class="empty-state-title">暂无任务附件</p>
-            </div>
-          </td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </section>
 
-    <section class="panel table-wrap" style="margin-top:20px">
-      <div class="section-head"><h2>回复附件</h2></div>
-      <table>
-        <thead><tr><th>文件名</th><th>类型</th><th>操作</th></tr></thead>
-        <tbody>
-          {% for attachment in received_attachments %}
-          <tr>
-            <td>{{ attachment.filename }}</td>
-            <td><span class="status-pill" style="font-size:.72rem">{{ attachment.content_type }}</span></td>
-            <td>
-              <div class="file-actions">
-                <button class="secondary small preview-file" type="button" data-preview-url="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/preview" data-view-url="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/view" data-title="{{ attachment.filename }}">预览</button>
-                <button class="secondary small open-file" type="button" data-open-url="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/open">本地打开</button>
+    <section class="panel" style="margin-top:16px">
+      <div class="section-head-inline">
+        <div>
+          <h2>回复附件</h2>
+          <p class="hint">从回复邮件中提取的附件，可预览、本地打开或进一步处理。</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>文件名</th><th style="width:120px">类型</th><th style="width:100px">处理状态</th><th style="width:180px"></th></tr></thead>
+          <tbody>
+            {% for attachment in received_attachments %}
+            <tr>
+              <td>{{ attachment.filename }}</td>
+              <td><span class="status-pill" style="font-size:10px">{{ attachment.content_type }}</span></td>
+              <td>
+                {% set record = extraction_records | selectattr("attachment_id", "equalto", attachment.id) | first %}
+                {% if record %}
+                <span class="status-pill {{ record.status }}">{{ record.status }}</span>
+                {% else %}
+                <span class="status-pill draft">未处理</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="file-actions">
+                  <button class="secondary small preview-file" type="button" data-preview-url="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/preview" data-view-url="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/view" data-title="{{ attachment.filename }}">预览</button>
+                  <button class="secondary small open-file" type="button" data-open-url="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/open">本地打开</button>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">
+              <div class="empty-state">
+                <p class="empty-state-title">暂无回复附件</p>
+                <p class="empty-state-desc">同步回复后会自动提取附件。</p>
               </div>
-            </td>
-          </tr>
-          {% else %}
-          <tr><td colspan="3">
-            <div class="empty-state">
-              <p class="empty-state-title">暂无回复附件</p>
-            </div>
-          </td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </section>
 
-    <section class="panel data-workbench">
-      <div class="section-head">
-        <h2>资料工作台</h2>
-        <p class="hint">围绕回复附件做三件事：读取结构化数据、识别复杂附件、生成后续处理资料包。</p>
+    <section class="panel data-workbench" style="margin-top:16px">
+      <div class="section-head-inline">
+        <div>
+          <h2>资料工作台</h2>
+          <p class="hint">解析附件 → AI 识别 → 导出资料，三步完成资料处理。</p>
+        </div>
       </div>
       <div class="workflow-grid">
         <div class="workflow-step">
-          <p class="workflow-step-title">解析附件</p>
-          <p class="workflow-step-desc">本地读取 CSV、XLSX、TXT、MD；其他格式会进入待识别状态。</p>
-          {% if campaign.status != "archived" %}
-          <button id="process-button" type="button" class="secondary small">解析所有回复附件</button>
-          {% else %}
-          <button type="button" class="secondary small" disabled>归档任务不可解析</button>
-          {% endif %}
+          <div class="workflow-step-header">
+            <div class="workflow-step-number">1</div>
+            <p class="workflow-step-title">解析附件</p>
+          </div>
+          <p class="workflow-step-desc">本地读取 CSV、XLSX、TXT、MD 等结构化文件。</p>
+          <div class="workflow-step-actions">
+            {% if campaign.status != "archived" %}
+            <button id="process-button" type="button" class="secondary small">解析所有回复附件</button>
+            {% else %}
+            <button type="button" class="secondary small" disabled>归档任务不可解析</button>
+            {% endif %}
+          </div>
         </div>
         <div class="workflow-step">
-          <p class="workflow-step-title">AI 识别</p>
-          <p class="workflow-step-desc">处理图片、PDF、Word 等复杂附件，会调用你配置的 AI API。</p>
-          {% if campaign.status != "archived" %}
-          <button id="ai-process-button" type="button" class="secondary small">AI 识别待处理附件</button>
-          {% else %}
-          <button type="button" class="secondary small" disabled>归档任务不可识别</button>
-          {% endif %}
+          <div class="workflow-step-header">
+            <div class="workflow-step-number">2</div>
+            <p class="workflow-step-title">AI 识别</p>
+          </div>
+          <p class="workflow-step-desc">处理图片、PDF、Word 等复杂附件，调用 AI API。</p>
+          <div class="workflow-step-actions">
+            {% if campaign.status != "archived" %}
+            <button id="ai-process-button" type="button" class="secondary small">AI 识别待处理附件</button>
+            {% else %}
+            <button type="button" class="secondary small" disabled>归档任务不可识别</button>
+            {% endif %}
+          </div>
         </div>
         <div class="workflow-step">
-          <p class="workflow-step-title">导出资料</p>
-          <p class="workflow-step-desc">生成 Excel 汇总表和 ZIP 包，包含已匹配回复正文与附件。</p>
-          <button id="export-button" type="button" class="secondary small">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            生成 Excel + ZIP
-          </button>
+          <div class="workflow-step-header">
+            <div class="workflow-step-number">3</div>
+            <p class="workflow-step-title">导出资料</p>
+          </div>
+          <p class="workflow-step-desc">生成 Excel 汇总表和 ZIP 包，包含回复正文与附件。</p>
+          <div class="workflow-step-actions">
+            <button id="export-button" type="button" class="secondary small">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              生成 Excel + ZIP
+            </button>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="panel table-wrap" style="margin-top:20px">
-      <div class="section-head"><h2>处理记录</h2></div>
-      <table>
-        <thead><tr><th>对象</th><th>状态</th><th>错误</th><th>结果</th></tr></thead>
-        <tbody>
-          {% for record in extraction_records %}
-          <tr>
-            <td>{{ record.filename }}</td>
-            <td><span class="status-pill {{ record.status }}">{{ record.status }}</span></td>
-            <td>{% if record.error %}<span style="color:var(--danger);font-size:.82rem">{{ record.error }}</span>{% else %}—{% endif %}</td>
-            <td>
-              {% if record.result_json %}
-              <button class="secondary small preview-record" type="button" data-title="{{ record.filename }}" data-text="{{ record.result_json }}">查看数据</button>
-              {% else %}
-              —
-              {% endif %}
-            </td>
-          </tr>
-          {% else %}
-          <tr><td colspan="4">
-            <div class="empty-state">
-              <p class="empty-state-title">暂无处理结果</p>
-              <p class="empty-state-desc">点击「解析所有回复附件」或「AI 识别待处理附件」开始处理。</p>
-            </div>
-          </td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <section class="panel" style="margin-top:16px">
+      <div class="section-head-inline">
+        <h2>处理记录</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:30%">文件名</th><th style="width:100px">状态</th><th style="min-width:140px">错误</th><th style="width:90px"></th></tr></thead>
+          <tbody>
+            {% for record in extraction_records %}
+            <tr>
+              <td>{{ record.filename }}</td>
+              <td><span class="status-pill {{ record.status }}">{{ record.status }}</span></td>
+              <td>{% if record.error %}<span style="color:var(--danger);font-size:12px">{{ record.error }}</span>{% else %}—{% endif %}</td>
+              <td>
+                {% if record.result_json %}
+                <button class="secondary small preview-record" type="button" data-title="{{ record.filename }}" data-text="{{ record.result_json }}">查看数据</button>
+                {% else %}
+                —
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">
+              <div class="empty-state">
+                <p class="empty-state-title">暂无处理结果</p>
+                <p class="empty-state-desc">点击「解析所有回复附件」或「AI 识别」开始处理。</p>
+              </div>
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </section>
   </div>
 </div>
+
+{% if campaign.status == "archived" %}
+<section class="panel" style="margin-top:24px">
+  <div class="section-head-inline">
+    <div>
+      <h2>归档管理</h2>
+      <p class="hint">此任务已归档，不再发送或追踪。可取消归档恢复活跃状态。</p>
+    </div>
+    <div class="toolbar">
+      <button id="unarchive-button-bottom" type="button" class="secondary small">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        取消归档
+      </button>
+      <button class="danger secondary small delete-campaign" type="button" data-campaign-id="{{ campaign.id }}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        删除任务
+      </button>
+    </div>
+  </div>
+</section>
+{% endif %}
 {% endblock %}
 
 {% block extra_script %}
@@ -406,8 +490,8 @@
   const refreshButton = document.getElementById('refresh-button');
   if (refreshButton) refreshButton.addEventListener('click', () => {
     handleAction(refreshButton, `/api/campaigns/${campaignId}/refresh`, {
-      loadingText: '刷新中',
-      onSuccess: (r) => `刷新完成：拉取 ${r.fetched_count}，匹配 ${r.replied_count}`
+      loadingText: '同步中',
+      onSuccess: (r) => `同步完成：拉取 ${r.fetched_count}，匹配 ${r.replied_count}`
     });
   });
 
@@ -442,6 +526,14 @@
   const unarchiveButton = document.getElementById('unarchive-button');
   if (unarchiveButton) unarchiveButton.addEventListener('click', () => {
     handleAction(unarchiveButton, `/api/campaigns/${campaignId}/unarchive`, {
+      loadingText: '恢复中',
+      onSuccess: (r) => `已恢复为 ${r.status}`
+    });
+  });
+
+  const unarchiveButtonBottom = document.getElementById('unarchive-button-bottom');
+  if (unarchiveButtonBottom) unarchiveButtonBottom.addEventListener('click', () => {
+    handleAction(unarchiveButtonBottom, `/api/campaigns/${campaignId}/unarchive`, {
       loadingText: '恢复中',
       onSuccess: (r) => `已恢复为 ${r.status}`
     });
@@ -559,6 +651,32 @@
   document.querySelectorAll('.preview-record').forEach((button) => {
     button.addEventListener('click', () => {
       openPreview({ title: button.dataset.title || '处理结果', text: button.dataset.text || '暂无数据' });
+    });
+  });
+
+  document.querySelectorAll('.delete-campaign').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const ok = await confirmAction({
+        title: '删除任务',
+        message: '此操作将删除该任务及所有本地资料，不可恢复。输入 DELETE 确认。',
+        confirmText: '确认删除',
+        requiredInput: 'DELETE',
+        onConfirmDanger: true,
+      });
+      if (!ok) return;
+      setLoading(button, true, '删除中');
+      const response = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'DELETE' })
+      });
+      if (!response.ok) {
+        toast('删除失败', 'error');
+        setLoading(button, false);
+        return;
+      }
+      toast('已删除', 'success');
+      setTimeout(() => window.location.href = '/', 400);
     });
   });
 

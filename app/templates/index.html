@@ -4,19 +4,15 @@
 
 {% block content %}
 <header class="page-header">
-  <div>
+  <div class="page-header-left">
     <p class="eyebrow">Campaigns</p>
     <h1>调研任务</h1>
     <p class="meta">集中管理发信、回执、附件和导出状态。</p>
   </div>
-  <div class="toolbar">
+  <div class="page-header-right toolbar">
     <a class="button" href="/campaigns/new">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       创建调研任务
-    </a>
-    <a class="button secondary" href="/settings">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      设置
     </a>
   </div>
 </header>
@@ -32,90 +28,106 @@
   </div>
 </div>
 
-<section class="panel table-wrap">
-  <div class="section-head">
-    <h2>活跃任务</h2>
-    <p class="hint">需要继续发送、收取回复或处理资料的任务。</p>
+<section class="panel">
+  <div class="section-head-inline">
+    <div>
+      <h2>活跃任务</h2>
+      <p class="hint">需要继续发送、收取回复或处理资料的任务。</p>
+    </div>
   </div>
-  <table>
-    <thead>
-      <tr><th>任务</th><th>主题</th><th>创建时间</th><th>截止时间</th><th>状态</th><th style="width:140px">操作</th></tr>
-    </thead>
-    <tbody>
-      {% for campaign in campaigns %}
-      <tr data-campaign-row="{{ campaign.id }}">
-        <td><a href="/campaigns/{{ campaign.id }}">{{ campaign.name }}</a></td>
-        <td>{{ campaign.subject }}</td>
-        <td>{{ campaign.created_at }}</td>
-        <td>{{ campaign.deadline }}</td>
-        <td>
-          <span class="status-pill {{ campaign.status }}">{{ campaign.status }}</span>
-          {% if reminder_counts.get(campaign.id, 0) %}
-          <span class="status-pill reminded">待提醒 {{ reminder_counts.get(campaign.id, 0) }}</span>
-          {% endif %}
-        </td>
-        <td>
-          <div class="row-actions">
-            <button class="secondary small archive-campaign" type="button" data-campaign-id="{{ campaign.id }}">归档</button>
-            <button class="danger secondary small delete-campaign" type="button" data-campaign-id="{{ campaign.id }}">删除</button>
-          </div>
-        </td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="6">
-          <div class="empty-state">
-            <div class="empty-state-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th style="width:22%">任务</th><th>主题</th><th style="width:14%">创建时间</th><th style="width:14%">截止时间</th><th style="width:120px">状态</th><th style="width:90px"></th></tr>
+      </thead>
+      <tbody>
+        {% for campaign in campaigns %}
+        <tr data-campaign-row="{{ campaign.id }}">
+          <td><a href="/campaigns/{{ campaign.id }}">{{ campaign.name }}</a></td>
+          <td>{{ campaign.subject }}</td>
+          <td>{{ campaign.created_at }}</td>
+          <td>{{ campaign.deadline }}</td>
+          <td>
+            <span class="status-pill {{ campaign.status }}">{{ campaign.status }}</span>
+            {% if reminder_counts.get(campaign.id, 0) %}
+            <span class="status-pill reminded">待提醒 {{ reminder_counts.get(campaign.id, 0) }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="row-actions">
+              <button class="ghost small archive-campaign" type="button" data-campaign-id="{{ campaign.id }}" title="归档" aria-label="归档 {{ campaign.name }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+              </button>
+              <button class="ghost small delete-campaign" type="button" data-campaign-id="{{ campaign.id }}" title="删除" aria-label="删除 {{ campaign.name }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
             </div>
-            <p class="empty-state-title">暂无活跃任务</p>
-            <p class="empty-state-desc">点击右上角创建调研任务，开始收集邮件回执。</p>
-          </div>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6">
+            <div class="empty-state">
+              <div class="empty-state-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <p class="empty-state-title">暂无活跃任务</p>
+              <p class="empty-state-desc">点击右上角创建调研任务，开始收集邮件回执。</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
 
-<section class="panel table-wrap archived-section">
-  <div class="section-head">
-    <h2>已归档</h2>
-    <p class="hint">已归档任务保留资料和导出能力，不参与活跃追踪。</p>
+<section class="panel archived-section">
+  <div class="section-head-inline">
+    <div>
+      <h2>已归档</h2>
+      <p class="hint">已归档任务保留资料和导出能力，不参与活跃追踪。</p>
+    </div>
   </div>
-  <table>
-    <thead>
-      <tr><th>任务</th><th>主题</th><th>归档前状态</th><th>归档时间</th><th style="width:140px">操作</th></tr>
-    </thead>
-    <tbody>
-      {% for campaign in archived_campaigns %}
-      <tr data-campaign-row="{{ campaign.id }}">
-        <td><a href="/campaigns/{{ campaign.id }}">{{ campaign.name }}</a></td>
-        <td>{{ campaign.subject }}</td>
-        <td><span class="status-pill {{ campaign.status_before_archive or '' }}">{{ campaign.status_before_archive or "—" }}</span></td>
-        <td>{{ campaign.archived_at or "—" }}</td>
-        <td>
-          <div class="row-actions">
-            <button class="secondary small unarchive-campaign" type="button" data-campaign-id="{{ campaign.id }}">取消归档</button>
-            <button class="danger secondary small delete-campaign" type="button" data-campaign-id="{{ campaign.id }}">删除</button>
-          </div>
-        </td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="5">
-          <div class="empty-state">
-            <div class="empty-state-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th style="width:22%">任务</th><th>主题</th><th style="width:120px">归档前状态</th><th style="width:14%">归档时间</th><th style="width:90px"></th></tr>
+      </thead>
+      <tbody>
+        {% for campaign in archived_campaigns %}
+        <tr data-campaign-row="{{ campaign.id }}">
+          <td><a href="/campaigns/{{ campaign.id }}">{{ campaign.name }}</a></td>
+          <td>{{ campaign.subject }}</td>
+          <td><span class="status-pill {{ campaign.status_before_archive or '' }}">{{ campaign.status_before_archive or "—" }}</span></td>
+          <td>{{ campaign.archived_at or "—" }}</td>
+          <td>
+            <div class="row-actions">
+              <button class="ghost small unarchive-campaign" type="button" data-campaign-id="{{ campaign.id }}" title="取消归档" aria-label="取消归档 {{ campaign.name }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+              </button>
+              <button class="ghost small delete-campaign" type="button" data-campaign-id="{{ campaign.id }}" title="删除" aria-label="删除 {{ campaign.name }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
             </div>
-            <p class="empty-state-title">暂无归档任务</p>
-            <p class="empty-state-desc">归档后的任务会显示在这里。</p>
-          </div>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5">
+            <div class="empty-state">
+              <div class="empty-state-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <p class="empty-state-title">暂无归档任务</p>
+              <p class="empty-state-desc">归档后的任务会显示在这里。</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
 {% endblock %}
 

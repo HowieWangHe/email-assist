@@ -4,10 +4,10 @@ function toast(message, type = 'info', duration = 3000) {
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
   const icon = type === 'success'
-    ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
+    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
     : type === 'error'
-    ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`
-    : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`
+    : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
   el.innerHTML = `${icon}<span>${message}</span>`;
   container.appendChild(el);
   setTimeout(() => {
@@ -145,6 +145,8 @@ function highlightNav() {
 function initTabs(container) {
   const tabs = container.querySelectorAll('.tab');
   const panels = container.querySelectorAll('.tab-panel');
+  const tabKey = `tab:${location.pathname}`;
+
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const target = tab.dataset.tab;
@@ -153,8 +155,23 @@ function initTabs(container) {
       tab.classList.add('is-active');
       const panel = container.querySelector(`.tab-panel[data-tab-panel="${target}"]`);
       if (panel) panel.classList.add('is-active');
+      try { localStorage.setItem(tabKey, target); } catch (e) {}
     });
   });
+
+  // Restore saved tab
+  const saved = (() => {
+    try { return localStorage.getItem(tabKey); } catch (e) { return null; }
+  })();
+
+  if (saved) {
+    const savedTab = container.querySelector(`.tab[data-tab="${saved}"]`);
+    if (savedTab) {
+      savedTab.click();
+      return;
+    }
+  }
+
   if (tabs.length && !container.querySelector('.tab.is-active')) {
     tabs[0].click();
   }

@@ -4,15 +4,17 @@
 
 {% block content %}
 <header class="page-header">
-  <div>
+  <div class="page-header-left">
     <p class="eyebrow">New Campaign</p>
     <h1>创建调研任务</h1>
     <p class="meta">填写邮件、收件人和附件，保存后再进入详情页发送。</p>
   </div>
-  <a class="button secondary" href="/">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-    返回列表
-  </a>
+  <div class="page-header-right">
+    <a class="button secondary" href="/">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      返回列表
+    </a>
+  </div>
 </header>
 
 <form id="campaign-form" class="panel panel-pad" method="post" action="/campaigns" enctype="multipart/form-data">
@@ -35,7 +37,7 @@
         <div class="file-drop-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 15c.7-1.2 1-2.5.7-3.9-.6-2.5-2.8-4.4-5.4-4.4a5.8 5.8 0 0 0-4.1 1.7l-7.2 7.2a3.9 3.9 0 0 0 0 5.5 3.9 3.9 0 0 0 5.5 0l7.2-7.2c.8-.8 2.1-.8 2.9 0 .8.8.8 2.1 0 2.9l-7.2 7.2a6.8 6.8 0 0 1-9.6 0 6.8 6.8 0 0 1 0-9.6l7.2-7.2a8.8 8.8 0 0 1 12.4 0 8.8 8.8 0 0 1 0 12.4l-7.2 7.2"/></svg>
         </div>
-        <p style="margin:0;font-weight:600;font-size:.9rem">点击或拖拽文件至此</p>
+        <p style="margin:0;font-weight:500;font-size:13px">点击或拖拽文件至此</p>
         <p class="hint" style="margin-top:4px">这些附件会随每封外部邮件一起发送</p>
         <input id="attachments" name="attachments" type="file" multiple style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
       </div>
@@ -44,7 +46,7 @@
     <div class="form-row-full">
       <label for="recipients_text">外部收件人</label>
       <textarea id="recipients_text" name="recipients_text" placeholder="vendor@example.com,供应商A,张三&#10;another@example.com,供应商B"></textarea>
-      <p class="hint">每行一个收件人，格式：邮箱,公司,姓名；公司和姓名可省略。<span id="recipient-count" style="margin-left:8px;font-weight:700;color:var(--primary)"></span></p>
+      <p class="hint">每行一个收件人，格式：邮箱,公司,姓名；公司和姓名可省略。<span id="recipient-count" style="margin-left:8px;font-weight:600;color:var(--accent)"></span></p>
     </div>
     <div class="form-row-full">
       <label for="recipients_file">导入收件人文件</label>
@@ -61,16 +63,16 @@
     </div>
     <div class="form-row-full">
       <label for="body_template">邮件正文模板</label>
-      <textarea id="body_template" name="body_template" required>您好 {company}，请协助反馈本次调研/询价信息，谢谢。</textarea>
+      <textarea id="body_template" name="body_template" required style="min-height:80px">您好 {company}，请协助反馈本次调研/询价信息，谢谢。</textarea>
       <p class="hint">可用变量：<code>{company}</code>、<code>{name}</code>、<code>{email}</code></p>
     </div>
   </div>
-  <div class="actions" style="margin-top:22px">
+  <div class="actions" style="margin-top:20px">
     <button type="submit">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
       保存任务
     </button>
-    <a class="button secondary" href="/">返回</a>
+    <a class="button secondary" href="/">取消</a>
   </div>
 </form>
 {% endblock %}
