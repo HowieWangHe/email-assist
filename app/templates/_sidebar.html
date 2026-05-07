@@ -5,6 +5,7 @@
     </span>
     <span>Email Assist</span>
   </div>
+
   <nav class="nav-list">
     <a class="nav-link" href="/" data-nav="/">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
@@ -15,11 +16,18 @@
       <span>连接配置</span>
     </a>
   </nav>
+
   <div class="side-footer">
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      <span>本地运行</span>
+    <div class="side-system">
+      <div class="side-system-row">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>本地运行</span>
+      </div>
+      <p>数据保存在本机，不上传云端。</p>
     </div>
-    <div>数据保存在本地，不上传云端。</div>
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="切换主题">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <span>深色</span>
+    </button>
   </div>
 </aside>

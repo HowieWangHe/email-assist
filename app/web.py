@@ -33,6 +33,15 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
+def _format_dt(value):
+    if value is None:
+        return "—"
+    return value.strftime("%Y-%m-%d %H:%M:%S")
+
+
+templates.env.filters["dt"] = _format_dt
+
+
 class RecipientInput(BaseModel):
     email: str
     name: str | None = None

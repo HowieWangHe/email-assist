@@ -45,8 +45,8 @@
         <tr data-campaign-row="{{ campaign.id }}">
           <td><a href="/campaigns/{{ campaign.id }}">{{ campaign.name }}</a></td>
           <td>{{ campaign.subject }}</td>
-          <td>{{ campaign.created_at }}</td>
-          <td>{{ campaign.deadline }}</td>
+          <td>{{ campaign.created_at | dt }}</td>
+          <td>{{ campaign.deadline | dt }}</td>
           <td>
             <span class="status-pill {{ campaign.status }}">{{ campaign.status }}</span>
             {% if reminder_counts.get(campaign.id, 0) %}
@@ -100,7 +100,7 @@
           <td><a href="/campaigns/{{ campaign.id }}">{{ campaign.name }}</a></td>
           <td>{{ campaign.subject }}</td>
           <td><span class="status-pill {{ campaign.status_before_archive or '' }}">{{ campaign.status_before_archive or "—" }}</span></td>
-          <td>{{ campaign.archived_at or "—" }}</td>
+          <td>{{ campaign.archived_at | dt }}</td>
           <td>
             <div class="row-actions">
               <button class="ghost small unarchive-campaign" type="button" data-campaign-id="{{ campaign.id }}" title="取消归档" aria-label="取消归档 {{ campaign.name }}">

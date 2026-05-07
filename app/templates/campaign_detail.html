@@ -9,7 +9,7 @@
       <p class="eyebrow">Campaign Detail</p>
       <h1>{{ campaign.name }}</h1>
       <p class="meta">
-        {{ campaign.subject }} · {{ campaign.deadline }}
+        {{ campaign.subject }} · {{ campaign.deadline | dt }}
         <span class="status-pill {{ campaign.status }}">{{ campaign.status }}</span>
       </p>
       {% if campaign.status == "archived" %}
@@ -20,6 +20,10 @@
       {% endif %}
     </div>
     <div class="detail-actions">
+      <a class="button secondary small" href="/">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        返回
+      </a>
       {% if campaign.status != "archived" %}
       <div class="toolbar">
         <button id="send-button" type="button" class="small">
@@ -141,19 +145,26 @@
     {% endif %}
 
     <section class="panel">
+      <div class="section-head-inline">
+        <h2>收件人列表</h2>
+        <div class="search-box" style="width:220px">
+          <svg class="search-box-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input id="recipient-search" type="text" placeholder="搜索邮箱、公司、姓名...">
+        </div>
+      </div>
       <div class="table-wrap">
-        <table>
+        <table id="recipients-table">
           <thead>
             <tr><th>邮箱</th><th>公司</th><th>姓名</th><th style="width:90px">状态</th><th style="width:14%">发送时间</th><th style="min-width:120px">错误</th></tr>
           </thead>
           <tbody>
             {% for recipient in recipients %}
-            <tr>
+            <tr data-recipient-row="{{ recipient.id }}" data-search-text="{{ recipient.email }} {{ recipient.company or '' }} {{ recipient.name or '' }} {{ recipient.status }}">
               <td class="cell-mono">{{ recipient.email }}</td>
               <td>{{ recipient.company or "—" }}</td>
               <td>{{ recipient.name or "—" }}</td>
               <td><span class="status-pill {{ recipient.status }}">{{ recipient.status }}</span></td>
-              <td>{{ recipient.sent_at or "—" }}</td>
+              <td>{{ recipient.sent_at | dt }}</td>
               <td>{% if recipient.error %}<span style="color:var(--danger);font-size:12px">{{ recipient.error }}</span>{% else %}—{% endif %}</td>
             </tr>
             {% else %}

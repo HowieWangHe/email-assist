@@ -41,6 +41,44 @@
   --radius-xl: 12px;
 }
 
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface-raised: #334155;
+  --border: #334155;
+  --border-light: #475569;
+  --border-subtle: #334155;
+  --text: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --muted: #94a3b8;
+  --muted-light: #64748b;
+
+  --accent: #60a5fa;
+  --accent-strong: #3b82f6;
+  --accent-soft: rgba(59, 130, 246, 0.15);
+  --accent-border: rgba(96, 165, 250, 0.3);
+
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.1);
+  --danger-border: rgba(248, 113, 113, 0.3);
+
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.1);
+  --success-border: rgba(52, 211, 153, 0.3);
+
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.1);
+  --warning-border: rgba(251, 191, 36, 0.3);
+
+  --info: #38bdf8;
+  --info-soft: rgba(56, 189, 248, 0.1);
+
+  --shadow-xs: 0 1px 2px rgba(0,0,0,.2);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+  --shadow: 0 2px 8px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,.5);
+}
+
 * { box-sizing: border-box; }
 
 html { scroll-behavior: smooth; }
@@ -145,6 +183,26 @@ a:hover { color: var(--accent-strong); }
   font-size: 11px;
   color: var(--muted-light);
   line-height: 1.4;
+}
+
+.side-system {
+  padding: 10px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+}
+
+.side-system-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.side-system p {
+  margin: 0;
 }
 
 /* ================================================================
@@ -1119,3 +1177,26 @@ code {
 @media (max-width: 640px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ================================================================ Dark mode overrides ================================================================ */
+[data-theme="dark"] tbody tr:hover { background: #283548; }
+[data-theme="dark"] input, [data-theme="dark"] textarea, [data-theme="dark"] select { background: #1e293b; color: var(--text); border-color: var(--border-light); }
+[data-theme="dark"] input:focus, [data-theme="dark"] textarea:focus, [data-theme="dark"] select:focus { box-shadow: 0 0 0 3px rgba(96, 165, 250, .15); }
+[data-theme="dark"] .preview-body { background: #1e293b; }
+[data-theme="dark"] .secondary { background: var(--surface) !important; color: var(--text-secondary) !important; border-color: var(--border-light) !important; }
+[data-theme="dark"] .secondary:hover { background: var(--surface-raised) !important; border-color: var(--border) !important; color: var(--text) !important; }
+[data-theme="dark"] .ghost { color: var(--muted) !important; }
+[data-theme="dark"] .ghost:hover { background: var(--surface-raised) !important; color: var(--text-secondary) !important; }
+[data-theme="dark"] .status-pill.archived { background: #334155; color: #94a3b8; }
+[data-theme="dark"] .status-pill.draft { background: var(--surface); color: var(--muted); }
+[data-theme="dark"] code { background: #334155; color: var(--text-secondary); border-color: var(--border); }
+[data-theme="dark"] .file-drop { background: #1e293b; }
+
+/* ================================================================ Search box ================================================================ */
+.search-box { position: relative; }
+.search-box input { padding-left: 32px; }
+.search-box-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+
+/* ================================================================ Theme toggle ================================================================ */
+.theme-toggle { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 10px; padding: 6px 10px; border-radius: var(--radius-sm); background: transparent; border: 1px solid var(--border-light); color: var(--muted); font-size: 12px; cursor: pointer; transition: all .12s ease; }
+.theme-toggle:hover { background: var(--surface-raised); color: var(--text-secondary); }

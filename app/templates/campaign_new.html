@@ -18,20 +18,12 @@
 </header>
 
 <form id="campaign-form" class="panel panel-pad" method="post" action="/campaigns" enctype="multipart/form-data">
-  <div class="form-grid">
+  <div class="form-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto auto 1fr;">
     <div>
       <label for="name">任务名称</label>
       <input id="name" name="name" required placeholder="2026-05 供应商询价">
     </div>
-    <div>
-      <label for="subject">邮件主题</label>
-      <input id="subject" name="subject" required placeholder="询价调研">
-    </div>
-    <div>
-      <label for="deadline">截止时间</label>
-      <input id="deadline" name="deadline" type="datetime-local" required>
-    </div>
-    <div>
+    <div style="grid-row: 1 / span 3;">
       <label for="attachments">任务附件</label>
       <div class="file-drop" id="file-drop">
         <div class="file-drop-icon">
@@ -42,6 +34,14 @@
         <input id="attachments" name="attachments" type="file" multiple style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
       </div>
       <div id="file-list" class="hint" style="margin-top:8px"></div>
+    </div>
+    <div>
+      <label for="subject">邮件主题</label>
+      <input id="subject" name="subject" required placeholder="询价调研">
+    </div>
+    <div>
+      <label for="deadline">截止时间</label>
+      <input id="deadline" name="deadline" type="datetime-local" required>
     </div>
     <div class="form-row-full">
       <label for="recipients_text">外部收件人</label>

@@ -364,6 +364,8 @@ def test_fastapi_renders_index_and_settings_pages(tmp_path):
     assert "删除" in index.text
     assert "<span>创建调研任务</span>" not in index.text
     assert "数据目录" not in index.text
+    assert "side-animation" not in index.text
+    assert "本地运行" in index.text
     assert settings.status_code == 200
     assert "连接配置" in settings.text
 
@@ -446,6 +448,7 @@ def test_fastapi_renders_new_campaign_and_campaign_detail_pages(tmp_path):
     assert "vendor@example.com" in detail.text
     assert "reply summary" in detail.text
     assert "同步回复" in detail.text
+    assert "recipient-search" in detail.text
     assert "资料工作台" in detail.text
     assert "解析所有回复附件" in detail.text
     assert "AI 识别待处理附件" in detail.text

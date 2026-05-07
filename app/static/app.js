@@ -1,3 +1,30 @@
+/* ===== Theme ===== */
+function initTheme() {
+  const saved = (() => { try { return localStorage.getItem('theme'); } catch (e) { return null; } })();
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved || (prefersDark ? 'dark' : 'light');
+  document.documentElement.dataset.theme = theme;
+  updateThemeToggle(theme);
+  const toggle = document.getElementById('theme-toggle');
+  if (toggle) toggle.addEventListener('click', toggleTheme);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.dataset.theme;
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('theme', next); } catch (e) {}
+  updateThemeToggle(next);
+}
+
+function updateThemeToggle(theme) {
+  const btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  btn.innerHTML = theme === 'dark'
+    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span>浅色</span>`
+    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><span>深色</span>`;
+}
+
 /* ===== Toast ===== */
 function toast(message, type = 'info', duration = 3000) {
   const container = document.getElementById('toast-container');
@@ -159,10 +186,7 @@ function initTabs(container) {
     });
   });
 
-  // Restore saved tab
-  const saved = (() => {
-    try { return localStorage.getItem(tabKey); } catch (e) { return null; }
-  })();
+  const saved = (() => { try { return localStorage.getItem(tabKey); } catch (e) { return null; } })();
 
   if (saved) {
     const savedTab = container.querySelector(`.tab[data-tab="${saved}"]`);
@@ -175,6 +199,21 @@ function initTabs(container) {
   if (tabs.length && !container.querySelector('.tab.is-active')) {
     tabs[0].click();
   }
+}
+
+/* ===== Recipient search ===== */
+function initRecipientSearch() {
+  const searchInput = document.getElementById('recipient-search');
+  if (!searchInput) return;
+  const rows = document.querySelectorAll('#recipients-table tbody tr[data-recipient-row]');
+
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value.trim().toLowerCase();
+    rows.forEach(row => {
+      const text = (row.dataset.searchText || '').toLowerCase();
+      row.style.display = text.includes(query) ? '' : 'none';
+    });
+  });
 }
 
 /* ===== Fetch helpers ===== */
@@ -192,6 +231,8 @@ async function postJSON(url, body) {
 
 /* ===== Init ===== */
 document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
   highlightNav();
   document.querySelectorAll('.tabs-container').forEach(initTabs);
+  initRecipientSearch();
 });
