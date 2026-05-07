@@ -62,22 +62,24 @@ function confirmAction({ title = '确认操作', message = '', confirmText = '�
 }
 
 /* ===== Button Loading ===== */
-function setLoading(btn, loading = true, originalText = null) {
+function setLoading(btn, loading = true, loadingText = null) {
   if (!btn) return;
   if (loading) {
-    if (originalText !== null) btn.dataset.originalText = originalText;
-    const text = btn.dataset.originalText || btn.textContent;
+    if (!btn.dataset.originalHtml) btn.dataset.originalHtml = btn.innerHTML;
+    const text = loadingText || btn.textContent.trim();
     btn.disabled = true;
     btn.innerHTML = `<span class="spinner ${btn.classList.contains('secondary') ? 'spinner-secondary' : ''}"></span><span>${text}</span>`;
   } else {
-    const text = btn.dataset.originalText || btn.textContent;
     btn.disabled = false;
-    btn.textContent = text;
+    if (btn.dataset.originalHtml) {
+      btn.innerHTML = btn.dataset.originalHtml;
+      delete btn.dataset.originalHtml;
+    }
   }
 }
 
 /* ===== Preview modal ===== */
-function openPreview({ title = '预览', text = '', message = '', url = '', contentType = '' } = {}) {
+function openPreview({ title = '预览', text = '', message = '', url = '', contentType = '', rows = [] } = {}) {
   const modal = document.getElementById('preview-modal');
   const titleEl = document.getElementById('preview-title');
   const bodyEl = document.getElementById('preview-body');
@@ -85,7 +87,20 @@ function openPreview({ title = '预览', text = '', message = '', url = '', cont
   titleEl.textContent = title;
   bodyEl.innerHTML = '';
 
-  if (text) {
+  if (rows.length) {
+    const table = document.createElement('table');
+    table.className = 'preview-table';
+    rows.forEach((row, index) => {
+      const tr = document.createElement('tr');
+      row.forEach((cell) => {
+        const el = document.createElement(index === 0 ? 'th' : 'td');
+        el.textContent = cell;
+        tr.appendChild(el);
+      });
+      table.appendChild(tr);
+    });
+    bodyEl.appendChild(table);
+  } else if (text) {
     const pre = document.createElement('pre');
     pre.textContent = text;
     bodyEl.appendChild(pre);

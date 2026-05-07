@@ -190,6 +190,30 @@ def create_campaign_form(
     return HTMLResponse(status_code=status.HTTP_303_SEE_OTHER, headers={"Location": f"/campaigns/{campaign.id}"})
 
 
+@router.post("/campaigns/{campaign_id}/recipients", response_class=HTMLResponse)
+def append_recipients_form(
+    campaign_id: str,
+    request: Request,
+    recipients_text: str = Form(""),
+    recipients_file: UploadFile | None = File(None),
+) -> HTMLResponse:
+    campaign = request.app.state.database.get_campaign(campaign_id)
+    if campaign is None:
+        return HTMLResponse("Campaign not found", status_code=status.HTTP_404_NOT_FOUND)
+    if _is_archived(campaign):
+        return HTMLResponse("Archived campaign cannot be edited", status_code=status.HTTP_409_CONFLICT)
+
+    rows = _dedupe_recipients(_parse_recipients_text(recipients_text) + _parse_recipients_file(recipients_file))
+    existing = request.app.state.database.list_recipients(campaign_id)
+    new_recipients = _new_recipients_for_campaign(campaign_id, rows, existing)
+    if new_recipients:
+        request.app.state.database.save_recipients(new_recipients)
+        recipients = existing + new_recipients
+        CampaignService().refresh_campaign_status(campaign, recipients, now=datetime.now(timezone.utc))
+        request.app.state.database.save_campaign(campaign)
+    return HTMLResponse(status_code=status.HTTP_303_SEE_OTHER, headers={"Location": f"/campaigns/{campaign_id}"})
+
+
 @router.get("/api/settings")
 def get_settings(request: Request) -> dict:
     return request.app.state.settings_store.load().masked()
@@ -420,6 +444,22 @@ def preview_campaign_attachment(campaign_id: str, attachment_id: str, request: R
     return _preview_file_response(request, attachment.path, attachment.content_type)
 
 
+@router.get("/api/campaigns/{campaign_id}/received-attachments/{attachment_id}/view")
+def view_received_attachment(campaign_id: str, attachment_id: str, request: Request):
+    attachment = _find_received_attachment(request, campaign_id, attachment_id)
+    if attachment is None:
+        return JSONResponse({"error": "attachment_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    return _inline_file_response(request, attachment.path, attachment.filename, attachment.content_type)
+
+
+@router.get("/api/campaigns/{campaign_id}/campaign-attachments/{attachment_id}/view")
+def view_campaign_attachment(campaign_id: str, attachment_id: str, request: Request):
+    attachment = _find_campaign_attachment(request, campaign_id, attachment_id)
+    if attachment is None:
+        return JSONResponse({"error": "attachment_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    return _inline_file_response(request, attachment.path, attachment.filename, attachment.content_type)
+
+
 @router.get("/api/campaigns/{campaign_id}/received-attachments/{attachment_id}/download")
 def download_received_attachment(campaign_id: str, attachment_id: str, request: Request):
     attachment = _find_received_attachment(request, campaign_id, attachment_id)
@@ -434,6 +474,37 @@ def download_campaign_attachment(campaign_id: str, attachment_id: str, request: 
     if attachment is None:
         return JSONResponse({"error": "attachment_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
     return _download_file_response(request, attachment.path, attachment.filename, attachment.content_type)
+
+
+@router.post("/api/campaigns/{campaign_id}/received-messages/{message_row_id}/open")
+def open_received_message_body(campaign_id: str, message_row_id: str, request: Request) -> JSONResponse:
+    message = next(
+        (
+            item
+            for item in request.app.state.database.list_received_messages(campaign_id)
+            if item.id == message_row_id
+        ),
+        None,
+    )
+    if message is None:
+        return JSONResponse({"error": "message_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    return _open_file_response(request, message.body_path)
+
+
+@router.post("/api/campaigns/{campaign_id}/received-attachments/{attachment_id}/open")
+def open_received_attachment(campaign_id: str, attachment_id: str, request: Request) -> JSONResponse:
+    attachment = _find_received_attachment(request, campaign_id, attachment_id)
+    if attachment is None:
+        return JSONResponse({"error": "attachment_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    return _open_file_response(request, attachment.path)
+
+
+@router.post("/api/campaigns/{campaign_id}/campaign-attachments/{attachment_id}/open")
+def open_campaign_attachment(campaign_id: str, attachment_id: str, request: Request) -> JSONResponse:
+    attachment = _find_campaign_attachment(request, campaign_id, attachment_id)
+    if attachment is None:
+        return JSONResponse({"error": "attachment_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    return _open_file_response(request, attachment.path)
 
 
 @router.post("/api/campaigns/{campaign_id}/received-messages/{message_row_id}/reveal")
@@ -684,8 +755,23 @@ def _download_file_response(
         return JSONResponse({"error": "file_not_allowed"}, status_code=status.HTTP_403_FORBIDDEN)
     if not allowed_path.exists():
         return JSONResponse({"error": "file_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
-    media_type = content_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    media_type = _effective_content_type(allowed_path, content_type or mimetypes.guess_type(filename)[0])
     return FileResponse(allowed_path, media_type=media_type, filename=filename)
+
+
+def _inline_file_response(
+    request: Request,
+    path: Path,
+    filename: str,
+    content_type: str,
+):
+    allowed_path = _safe_local_file(request, path)
+    if allowed_path is None:
+        return JSONResponse({"error": "file_not_allowed"}, status_code=status.HTTP_403_FORBIDDEN)
+    if not allowed_path.exists():
+        return JSONResponse({"error": "file_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    media_type = _effective_content_type(allowed_path, content_type or mimetypes.guess_type(filename)[0])
+    return FileResponse(allowed_path, media_type=media_type)
 
 
 def _preview_file_response(request: Request, path: Path, content_type: str) -> JSONResponse:
@@ -694,7 +780,9 @@ def _preview_file_response(request: Request, path: Path, content_type: str) -> J
         return JSONResponse({"error": "file_not_allowed"}, status_code=status.HTTP_403_FORBIDDEN)
     if not allowed_path.exists():
         return JSONResponse({"error": "file_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
-    guessed_type = content_type or mimetypes.guess_type(allowed_path.name)[0] or "application/octet-stream"
+    guessed_type = _effective_content_type(allowed_path, content_type)
+    if allowed_path.suffix.lower() == ".xlsx":
+        return _xlsx_preview_response(allowed_path, guessed_type)
     if _is_text_previewable(allowed_path, guessed_type):
         return JSONResponse(
             {
@@ -710,7 +798,7 @@ def _preview_file_response(request: Request, path: Path, content_type: str) -> J
                 "kind": "browser",
                 "filename": allowed_path.name,
                 "content_type": guessed_type,
-                "message": "可在浏览器中预览，也可以下载或在访达中定位。",
+                "message": "可在浏览器中预览，也可以用本机默认应用打开。",
             }
         )
     return JSONResponse(
@@ -718,7 +806,35 @@ def _preview_file_response(request: Request, path: Path, content_type: str) -> J
             "kind": "unsupported",
             "filename": allowed_path.name,
             "content_type": guessed_type,
-            "message": "该文件类型暂不支持内嵌预览，请下载或在访达中打开。",
+            "message": "该文件类型暂不支持内嵌预览，请用本机默认应用打开。",
+        }
+    )
+
+
+def _effective_content_type(path: Path, content_type: str | None) -> str:
+    guessed = mimetypes.guess_type(path.name)[0]
+    if not content_type or content_type in {"application/octet-stream", "binary/octet-stream"}:
+        return guessed or "application/octet-stream"
+    return content_type
+
+
+def _xlsx_preview_response(path: Path, content_type: str) -> JSONResponse:
+    workbook = load_workbook(path, read_only=True, data_only=True)
+    worksheet = workbook.active
+    rows: list[list[str]] = []
+    for row in worksheet.iter_rows(max_row=50, max_col=12, values_only=True):
+        if not any(cell is not None and str(cell).strip() for cell in row):
+            continue
+        cells = ["" if cell is None else str(cell) for cell in row]
+        while cells and not cells[-1]:
+            cells.pop()
+        rows.append(cells)
+    return JSONResponse(
+        {
+            "kind": "table",
+            "filename": path.name,
+            "content_type": content_type,
+            "rows": rows,
         }
     )
 
@@ -746,6 +862,18 @@ def _reveal_file_response(request: Request, path: Path) -> JSONResponse:
         return JSONResponse({"error": "finder_unavailable"}, status_code=status.HTTP_400_BAD_REQUEST)
     subprocess.run(["open", "-R", str(allowed_path)], check=False)
     return JSONResponse({"path": str(allowed_path), "revealed": True})
+
+
+def _open_file_response(request: Request, path: Path) -> JSONResponse:
+    allowed_path = _safe_local_file(request, path)
+    if allowed_path is None:
+        return JSONResponse({"error": "file_not_allowed"}, status_code=status.HTTP_403_FORBIDDEN)
+    if not allowed_path.exists():
+        return JSONResponse({"error": "file_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    if shutil.which("open") is None:
+        return JSONResponse({"error": "file_open_unavailable"}, status_code=status.HTTP_400_BAD_REQUEST)
+    subprocess.run(["open", str(allowed_path)], check=False)
+    return JSONResponse({"path": str(allowed_path), "opened": True})
 
 
 def _reminder_counts(request: Request, campaigns: list[Campaign]) -> dict[str, int]:
@@ -815,6 +943,31 @@ def _create_campaign_objects(
         for recipient in recipients
     ]
     return campaign, campaign_recipients
+
+
+def _new_recipients_for_campaign(
+    campaign_id: str,
+    rows: list[dict[str, str | None]],
+    existing: list[CampaignRecipient],
+) -> list[CampaignRecipient]:
+    existing_emails = {recipient.email.lower() for recipient in existing}
+    new_recipients: list[CampaignRecipient] = []
+    for row in rows:
+        email = (row.get("email") or "").strip()
+        if not email or email.lower() in existing_emails:
+            continue
+        existing_emails.add(email.lower())
+        new_recipients.append(
+            CampaignRecipient(
+                id=uuid4().hex,
+                campaign_id=campaign_id,
+                email=email,
+                company=row.get("company"),
+                name=row.get("name"),
+                status=RecipientStatus.DRAFT,
+            )
+        )
+    return new_recipients
 
 
 def _settings_from_payload(payload: AppSettingsInput, existing: AppLocalConfig) -> AppLocalConfig:

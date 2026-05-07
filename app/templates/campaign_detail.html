@@ -103,13 +103,35 @@
       收件人状态
       <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ recipients | length }}</span>
     </button>
-    <button class="tab" data-tab="sent">已发送 <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ sent_messages | length }}</span></button>
-    <button class="tab" data-tab="replies">回复与认领 <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ received_messages | length + review_messages | length }}</span></button>
-    <button class="tab" data-tab="attachments">附件 <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ attachments | length + received_attachments | length }}</span></button>
-    <button class="tab" data-tab="workspace">资料工作台 <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ extraction_records | length }}</span></button>
+    <button class="tab" data-tab="replies">回复 <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ received_messages | length + review_messages | length }}</span></button>
+    <button class="tab" data-tab="attachments">附件与资料 <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ (attachments | length) + (received_attachments | length) + (extraction_records | length) }}</span></button>
+    <button class="tab" data-tab="sent">发送记录 <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ sent_messages | length }}</span></button>
   </div>
 
   <div class="tab-panel is-active" data-tab-panel="recipients">
+    {% if campaign.status != "archived" %}
+    <section class="panel panel-pad compact-form-panel">
+      <div class="section-head inline-head">
+        <div>
+          <h2>追加收件人</h2>
+          <p class="hint">新增收件人会以草稿状态加入当前任务，之后点击「发送未发收件人」即可补发。</p>
+        </div>
+      </div>
+      <form id="append-recipients-form" method="post" action="/campaigns/{{ campaign.id }}/recipients" enctype="multipart/form-data" class="append-grid">
+        <div>
+          <label for="append-recipients-text">手动输入</label>
+          <textarea id="append-recipients-text" name="recipients_text" placeholder="new@example.com,供应商C,王五"></textarea>
+        </div>
+        <div>
+          <label for="append-recipients-file">导入文件</label>
+          <input id="append-recipients-file" name="recipients_file" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+          <p class="hint">支持 CSV/XLSX；重复邮箱会自动跳过，不影响既有收件人状态。</p>
+          <button type="submit" class="small" style="margin-top:12px">追加到任务</button>
+        </div>
+      </form>
+    </section>
+    {% endif %}
+
     <section class="panel table-wrap">
       <table>
         <thead>
@@ -176,7 +198,7 @@
             <td>
               <div class="file-actions">
                 <button class="secondary small preview-message" type="button" data-message-id="{{ message.id }}">预览正文</button>
-                <button class="secondary small reveal-message" type="button" data-message-id="{{ message.id }}">访达</button>
+                <button class="secondary small open-message" type="button" data-message-id="{{ message.id }}">本地打开</button>
               </div>
             </td>
           </tr>
@@ -235,9 +257,8 @@
             <td><span class="status-pill" style="font-size:.72rem">{{ attachment.content_type }}</span></td>
             <td>
               <div class="file-actions">
-                <button class="secondary small preview-file" type="button" data-preview-url="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/preview" data-download-url="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/download" data-title="{{ attachment.filename }}">预览</button>
-                <a class="button secondary small" href="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/download">下载</a>
-                <button class="secondary small reveal-file" type="button" data-reveal-url="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/reveal">访达</button>
+                <button class="secondary small preview-file" type="button" data-preview-url="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/preview" data-view-url="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/view" data-title="{{ attachment.filename }}">预览</button>
+                <button class="secondary small open-file" type="button" data-open-url="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/open">本地打开</button>
               </div>
             </td>
           </tr>
@@ -263,9 +284,8 @@
             <td><span class="status-pill" style="font-size:.72rem">{{ attachment.content_type }}</span></td>
             <td>
               <div class="file-actions">
-                <button class="secondary small preview-file" type="button" data-preview-url="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/preview" data-download-url="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/download" data-title="{{ attachment.filename }}">预览</button>
-                <a class="button secondary small" href="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/download">下载</a>
-                <button class="secondary small reveal-file" type="button" data-reveal-url="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/reveal">访达</button>
+                <button class="secondary small preview-file" type="button" data-preview-url="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/preview" data-view-url="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/view" data-title="{{ attachment.filename }}">预览</button>
+                <button class="secondary small open-file" type="button" data-open-url="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/open">本地打开</button>
               </div>
             </td>
           </tr>
@@ -279,18 +299,16 @@
         </tbody>
       </table>
     </section>
-  </div>
 
-  <div class="tab-panel" data-tab-panel="workspace">
-    <section class="panel">
+    <section class="panel data-workbench">
       <div class="section-head">
         <h2>资料工作台</h2>
-        <p class="hint">处理对象是已匹配回复中的附件。先用本地规则解析结构化文件，再按需调用 AI 识别图片、PDF、Word 等附件，最后导出 Excel 汇总和 ZIP 资料包。</p>
+        <p class="hint">围绕回复附件做三件事：读取结构化数据、识别复杂附件、生成后续处理资料包。</p>
       </div>
       <div class="workflow-grid">
         <div class="workflow-step">
-          <p class="workflow-step-title">1. 附件解析</p>
-          <p class="workflow-step-desc">对象：全部回复附件。CSV、XLSX、TXT、MD 会在本地读取；不支持的文件会标记为待 AI。</p>
+          <p class="workflow-step-title">解析附件</p>
+          <p class="workflow-step-desc">本地读取 CSV、XLSX、TXT、MD；其他格式会进入待识别状态。</p>
           {% if campaign.status != "archived" %}
           <button id="process-button" type="button" class="secondary small">解析所有回复附件</button>
           {% else %}
@@ -298,8 +316,8 @@
           {% endif %}
         </div>
         <div class="workflow-step">
-          <p class="workflow-step-title">2. AI 识别</p>
-          <p class="workflow-step-desc">对象：需要图像理解或复杂文档读取的附件。会调用你在设置页配置的 AI API。</p>
+          <p class="workflow-step-title">AI 识别</p>
+          <p class="workflow-step-desc">处理图片、PDF、Word 等复杂附件，会调用你配置的 AI API。</p>
           {% if campaign.status != "archived" %}
           <button id="ai-process-button" type="button" class="secondary small">AI 识别待处理附件</button>
           {% else %}
@@ -307,8 +325,8 @@
           {% endif %}
         </div>
         <div class="workflow-step">
-          <p class="workflow-step-title">3. 业务导出</p>
-          <p class="workflow-step-desc">生成 Excel 汇总表，并把已匹配的回复正文与附件打包为 ZIP，供后续分析和归档。</p>
+          <p class="workflow-step-title">导出资料</p>
+          <p class="workflow-step-desc">生成 Excel 汇总表和 ZIP 包，包含已匹配回复正文与附件。</p>
           <button id="export-button" type="button" class="secondary small">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             生成 Excel + ZIP
@@ -486,8 +504,9 @@
           title: button.dataset.title || result.filename || '附件预览',
           text: result.text || '',
           message: result.message || '',
-          url: result.kind === 'browser' ? button.dataset.downloadUrl : '',
-          contentType: result.content_type || ''
+          url: result.kind === 'browser' ? button.dataset.viewUrl : '',
+          contentType: result.content_type || '',
+          rows: result.rows || []
         });
         setLoading(button, false);
       } catch (e) {
@@ -497,18 +516,18 @@
     });
   });
 
-  document.querySelectorAll('.reveal-message').forEach((button) => {
+  document.querySelectorAll('.open-message').forEach((button) => {
     button.addEventListener('click', async () => {
-      setLoading(button, true, '定位中');
+      setLoading(button, true, '打开中');
       try {
-        const response = await fetch(`/api/campaigns/${campaignId}/received-messages/${button.dataset.messageId}/reveal`, { method: 'POST' });
+        const response = await fetch(`/api/campaigns/${campaignId}/received-messages/${button.dataset.messageId}/open`, { method: 'POST' });
         const result = await response.json();
         if (!response.ok) {
-          toast(result.error || '无法定位文件', 'error');
+          toast(result.error || '无法打开文件', 'error');
           setLoading(button, false);
           return;
         }
-        toast('已在访达中显示', 'success');
+        toast('已交给本机默认应用打开', 'success');
         setLoading(button, false);
       } catch (e) {
         toast('网络错误', 'error');
@@ -517,18 +536,18 @@
     });
   });
 
-  document.querySelectorAll('.reveal-file').forEach((button) => {
+  document.querySelectorAll('.open-file').forEach((button) => {
     button.addEventListener('click', async () => {
-      setLoading(button, true, '定位中');
+      setLoading(button, true, '打开中');
       try {
-        const response = await fetch(button.dataset.revealUrl, { method: 'POST' });
+        const response = await fetch(button.dataset.openUrl, { method: 'POST' });
         const result = await response.json();
         if (!response.ok) {
-          toast(result.error || '无法定位文件', 'error');
+          toast(result.error || '无法打开文件', 'error');
           setLoading(button, false);
           return;
         }
-        toast('已在访达中显示', 'success');
+        toast('已交给本机默认应用打开', 'success');
         setLoading(button, false);
       } catch (e) {
         toast('网络错误', 'error');

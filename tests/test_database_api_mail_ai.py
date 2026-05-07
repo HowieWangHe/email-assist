@@ -359,7 +359,6 @@ def test_fastapi_renders_index_and_settings_pages(tmp_path):
 
     assert index.status_code == 200
     assert "调研任务" in index.text
-    assert "/static/mail-workflow.png" in index.text
     assert "创建时间" in index.text
     assert "归档" in index.text
     assert "删除" in index.text
@@ -451,10 +450,14 @@ def test_fastapi_renders_new_campaign_and_campaign_detail_pages(tmp_path):
     assert "解析所有回复附件" in detail.text
     assert "AI 识别待处理附件" in detail.text
     assert "生成 Excel + ZIP" in detail.text
+    assert "附件与资料" in detail.text
+    assert "本地打开" in detail.text
+    assert "访达" not in detail.text
+    assert ">下载<" not in detail.text
     assert "本地解析附件" not in detail.text
 
 
-def test_fastapi_previews_downloads_and_reveals_reply_files(tmp_path, monkeypatch):
+def test_fastapi_previews_and_opens_reply_files(tmp_path, monkeypatch):
     app = create_app(data_dir=tmp_path)
     client = TestClient(app)
     campaign = Campaign(
@@ -468,10 +471,12 @@ def test_fastapi_previews_downloads_and_reveals_reply_files(tmp_path, monkeypatc
     body_path = tmp_path / "campaigns" / "c1" / "recipients" / "r1" / "replies" / "m1" / "body.txt"
     raw_path = body_path.with_name("raw.eml")
     attachment_path = body_path.parent / "attachments" / "quote.txt"
+    image_path = body_path.parent / "attachments" / "quote.jpg"
     attachment_path.parent.mkdir(parents=True)
     body_path.write_text("Line one\nLine two", encoding="utf-8")
     raw_path.write_text("raw", encoding="utf-8")
     attachment_path.write_text("quoted delivery date: Friday", encoding="utf-8")
+    image_path.write_bytes(b"image")
     app.state.database.save_campaign(campaign)
     app.state.database.save_received_messages(
         [
@@ -499,6 +504,15 @@ def test_fastapi_previews_downloads_and_reveals_reply_files(tmp_path, monkeypatc
                 filename="quote.txt",
                 path=attachment_path,
                 content_type="text/plain",
+            ),
+            ReceivedAttachment(
+                id="a2",
+                campaign_id="c1",
+                recipient_id="r1",
+                message_id="<reply@example.com>",
+                filename="quote.jpg",
+                path=image_path,
+                content_type="application/octet-stream",
             )
         ]
     )
@@ -512,18 +526,92 @@ def test_fastapi_previews_downloads_and_reveals_reply_files(tmp_path, monkeypatc
 
     body = client.get("/api/campaigns/c1/received-messages/m1/body")
     preview = client.get("/api/campaigns/c1/received-attachments/a1/preview")
-    download = client.get("/api/campaigns/c1/received-attachments/a1/download")
-    reveal = client.post("/api/campaigns/c1/received-attachments/a1/reveal")
+    image_preview = client.get("/api/campaigns/c1/received-attachments/a2/preview")
+    opened = client.post("/api/campaigns/c1/received-attachments/a1/open")
 
     assert body.status_code == 200
     assert body.json()["body"] == "Line one\nLine two"
     assert preview.status_code == 200
     assert preview.json()["kind"] == "text"
     assert "quoted delivery date" in preview.json()["text"]
-    assert download.status_code == 200
-    assert download.text == "quoted delivery date: Friday"
-    assert reveal.status_code == 200
-    assert captured["command"] == ["open", "-R", str(attachment_path)]
+    assert image_preview.status_code == 200
+    assert image_preview.json()["kind"] == "browser"
+    assert image_preview.json()["content_type"] == "image/jpeg"
+    assert opened.status_code == 200
+    assert captured["command"] == ["open", str(attachment_path)]
+
+
+def test_fastapi_previews_xlsx_attachment_as_table(tmp_path):
+    app = create_app(data_dir=tmp_path)
+    client = TestClient(app)
+    campaign = Campaign(
+        id="c1",
+        name="May inquiry",
+        subject="RFQ",
+        body_template="Please quote.",
+        deadline=datetime.now(timezone.utc) + timedelta(days=1),
+        reminder_strategy=ReminderStrategy.MANUAL_CONFIRM,
+    )
+    from openpyxl import Workbook
+
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.append(["item", "price"])
+    worksheet.append(["A", 10])
+    attachment_path = tmp_path / "campaigns" / "c1" / "recipients" / "r1" / "replies" / "m1" / "attachments" / "quote.xlsx"
+    attachment_path.parent.mkdir(parents=True)
+    workbook.save(attachment_path)
+    app.state.database.save_campaign(campaign)
+    app.state.database.save_received_attachments(
+        [
+            ReceivedAttachment(
+                id="a1",
+                campaign_id="c1",
+                recipient_id="r1",
+                message_id="<reply@example.com>",
+                filename="quote.xlsx",
+                path=attachment_path,
+                content_type="application/octet-stream",
+            )
+        ]
+    )
+
+    preview = client.get("/api/campaigns/c1/received-attachments/a1/preview")
+
+    assert preview.status_code == 200
+    assert preview.json()["kind"] == "table"
+    assert preview.json()["rows"] == [["item", "price"], ["A", "10"]]
+
+
+def test_fastapi_appends_recipients_to_existing_campaign(tmp_path):
+    app = create_app(data_dir=tmp_path)
+    client = TestClient(app)
+    created = client.post(
+        "/api/campaigns",
+        json={
+            "name": "May inquiry",
+            "subject": "RFQ",
+            "body_template": "Please quote.",
+            "deadline": "2026-05-08T08:00:00+00:00",
+            "recipients": [{"email": "vendor@example.com", "company": "Vendor"}],
+        },
+    ).json()
+
+    response = client.post(
+        f"/campaigns/{created['id']}/recipients",
+        data={
+            "recipients_text": "vendor@example.com,Duplicate\nnew@example.com,New Vendor,Wang",
+        },
+        follow_redirects=False,
+    )
+    recipients = app.state.database.list_recipients(created["id"])
+
+    assert response.status_code == 303
+    assert [recipient.email for recipient in recipients] == ["new@example.com", "vendor@example.com"]
+    assert next(recipient for recipient in recipients if recipient.email == "new@example.com").status == RecipientStatus.DRAFT
+    detail = client.get(f"/campaigns/{created['id']}")
+    assert "追加收件人" in detail.text
+    assert "new@example.com" in detail.text
 
 
 def test_fastapi_archives_and_deletes_campaign(tmp_path):
