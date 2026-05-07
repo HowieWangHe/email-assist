@@ -3,11 +3,14 @@ from __future__ import annotations
 import csv
 from datetime import datetime, timezone
 from io import BytesIO, StringIO
+import mimetypes
+from pathlib import Path
 import shutil
+import subprocess
 from uuid import uuid4
 
 from fastapi import APIRouter, File, Form, Request, UploadFile, status
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from openpyxl import load_workbook
 from pydantic import BaseModel
@@ -373,6 +376,97 @@ def claim_review_message(
     )
 
 
+@router.get("/api/campaigns/{campaign_id}/received-messages/{message_row_id}/body")
+def preview_received_message_body(campaign_id: str, message_row_id: str, request: Request) -> JSONResponse:
+    message = next(
+        (
+            item
+            for item in request.app.state.database.list_received_messages(campaign_id)
+            if item.id == message_row_id
+        ),
+        None,
+    )
+    if message is None:
+        return JSONResponse({"error": "message_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    allowed_path = _safe_local_file(request, message.body_path)
+    if allowed_path is None:
+        return JSONResponse({"error": "file_not_allowed"}, status_code=status.HTTP_403_FORBIDDEN)
+    if not allowed_path.exists():
+        return JSONResponse({"error": "file_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    return JSONResponse(
+        {
+            "id": message.id,
+            "subject": message.subject,
+            "from_email": message.from_email,
+            "summary": message.body_summary,
+            "body": allowed_path.read_text(encoding="utf-8", errors="replace"),
+        }
+    )
+
+
+@router.get("/api/campaigns/{campaign_id}/received-attachments/{attachment_id}/preview")
+def preview_received_attachment(campaign_id: str, attachment_id: str, request: Request) -> JSONResponse:
+    attachment = _find_received_attachment(request, campaign_id, attachment_id)
+    if attachment is None:
+        return JSONResponse({"error": "attachment_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    return _preview_file_response(request, attachment.path, attachment.content_type)
+
+
+@router.get("/api/campaigns/{campaign_id}/campaign-attachments/{attachment_id}/preview")
+def preview_campaign_attachment(campaign_id: str, attachment_id: str, request: Request) -> JSONResponse:
+    attachment = _find_campaign_attachment(request, campaign_id, attachment_id)
+    if attachment is None:
+        return JSONResponse({"error": "attachment_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    return _preview_file_response(request, attachment.path, attachment.content_type)
+
+
+@router.get("/api/campaigns/{campaign_id}/received-attachments/{attachment_id}/download")
+def download_received_attachment(campaign_id: str, attachment_id: str, request: Request):
+    attachment = _find_received_attachment(request, campaign_id, attachment_id)
+    if attachment is None:
+        return JSONResponse({"error": "attachment_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    return _download_file_response(request, attachment.path, attachment.filename, attachment.content_type)
+
+
+@router.get("/api/campaigns/{campaign_id}/campaign-attachments/{attachment_id}/download")
+def download_campaign_attachment(campaign_id: str, attachment_id: str, request: Request):
+    attachment = _find_campaign_attachment(request, campaign_id, attachment_id)
+    if attachment is None:
+        return JSONResponse({"error": "attachment_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    return _download_file_response(request, attachment.path, attachment.filename, attachment.content_type)
+
+
+@router.post("/api/campaigns/{campaign_id}/received-messages/{message_row_id}/reveal")
+def reveal_received_message_body(campaign_id: str, message_row_id: str, request: Request) -> JSONResponse:
+    message = next(
+        (
+            item
+            for item in request.app.state.database.list_received_messages(campaign_id)
+            if item.id == message_row_id
+        ),
+        None,
+    )
+    if message is None:
+        return JSONResponse({"error": "message_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    return _reveal_file_response(request, message.body_path)
+
+
+@router.post("/api/campaigns/{campaign_id}/received-attachments/{attachment_id}/reveal")
+def reveal_received_attachment(campaign_id: str, attachment_id: str, request: Request) -> JSONResponse:
+    attachment = _find_received_attachment(request, campaign_id, attachment_id)
+    if attachment is None:
+        return JSONResponse({"error": "attachment_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    return _reveal_file_response(request, attachment.path)
+
+
+@router.post("/api/campaigns/{campaign_id}/campaign-attachments/{attachment_id}/reveal")
+def reveal_campaign_attachment(campaign_id: str, attachment_id: str, request: Request) -> JSONResponse:
+    attachment = _find_campaign_attachment(request, campaign_id, attachment_id)
+    if attachment is None:
+        return JSONResponse({"error": "attachment_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    return _reveal_file_response(request, attachment.path)
+
+
 @router.post("/api/campaigns/{campaign_id}/process-attachments")
 def process_attachments(campaign_id: str, request: Request, use_ai: bool = False) -> JSONResponse:
     campaign = request.app.state.database.get_campaign(campaign_id)
@@ -547,6 +641,111 @@ def _is_archived(campaign: Campaign) -> bool:
 
 def _archived_response() -> JSONResponse:
     return JSONResponse({"error": "campaign_archived"}, status_code=status.HTTP_409_CONFLICT)
+
+
+def _find_received_attachment(request: Request, campaign_id: str, attachment_id: str):
+    return next(
+        (
+            item
+            for item in request.app.state.database.list_received_attachments(campaign_id)
+            if item.id == attachment_id
+        ),
+        None,
+    )
+
+
+def _find_campaign_attachment(request: Request, campaign_id: str, attachment_id: str):
+    return next(
+        (
+            item
+            for item in request.app.state.database.list_campaign_attachments(campaign_id)
+            if item.id == attachment_id
+        ),
+        None,
+    )
+
+
+def _safe_local_file(request: Request, path: Path) -> Path | None:
+    data_root = request.app.state.settings.data_dir.resolve()
+    candidate = Path(path).resolve()
+    if not candidate.is_relative_to(data_root):
+        return None
+    return candidate
+
+
+def _download_file_response(
+    request: Request,
+    path: Path,
+    filename: str,
+    content_type: str,
+):
+    allowed_path = _safe_local_file(request, path)
+    if allowed_path is None:
+        return JSONResponse({"error": "file_not_allowed"}, status_code=status.HTTP_403_FORBIDDEN)
+    if not allowed_path.exists():
+        return JSONResponse({"error": "file_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    media_type = content_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    return FileResponse(allowed_path, media_type=media_type, filename=filename)
+
+
+def _preview_file_response(request: Request, path: Path, content_type: str) -> JSONResponse:
+    allowed_path = _safe_local_file(request, path)
+    if allowed_path is None:
+        return JSONResponse({"error": "file_not_allowed"}, status_code=status.HTTP_403_FORBIDDEN)
+    if not allowed_path.exists():
+        return JSONResponse({"error": "file_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    guessed_type = content_type or mimetypes.guess_type(allowed_path.name)[0] or "application/octet-stream"
+    if _is_text_previewable(allowed_path, guessed_type):
+        return JSONResponse(
+            {
+                "kind": "text",
+                "filename": allowed_path.name,
+                "content_type": guessed_type,
+                "text": allowed_path.read_text(encoding="utf-8", errors="replace")[:20000],
+            }
+        )
+    if guessed_type.startswith("image/") or guessed_type == "application/pdf":
+        return JSONResponse(
+            {
+                "kind": "browser",
+                "filename": allowed_path.name,
+                "content_type": guessed_type,
+                "message": "可在浏览器中预览，也可以下载或在访达中定位。",
+            }
+        )
+    return JSONResponse(
+        {
+            "kind": "unsupported",
+            "filename": allowed_path.name,
+            "content_type": guessed_type,
+            "message": "该文件类型暂不支持内嵌预览，请下载或在访达中打开。",
+        }
+    )
+
+
+def _is_text_previewable(path: Path, content_type: str) -> bool:
+    return content_type.startswith("text/") or path.suffix.lower() in {
+        ".csv",
+        ".json",
+        ".md",
+        ".txt",
+        ".log",
+        ".tsv",
+        ".xml",
+        ".html",
+    }
+
+
+def _reveal_file_response(request: Request, path: Path) -> JSONResponse:
+    allowed_path = _safe_local_file(request, path)
+    if allowed_path is None:
+        return JSONResponse({"error": "file_not_allowed"}, status_code=status.HTTP_403_FORBIDDEN)
+    if not allowed_path.exists():
+        return JSONResponse({"error": "file_not_found"}, status_code=status.HTTP_404_NOT_FOUND)
+    if shutil.which("open") is None:
+        return JSONResponse({"error": "finder_unavailable"}, status_code=status.HTTP_400_BAD_REQUEST)
+    subprocess.run(["open", "-R", str(allowed_path)], check=False)
+    return JSONResponse({"path": str(allowed_path), "revealed": True})
 
 
 def _reminder_counts(request: Request, campaigns: list[Campaign]) -> dict[str, int]:

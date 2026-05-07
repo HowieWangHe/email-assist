@@ -32,6 +32,17 @@
       </div>
     </div>
 
+    <div id="preview-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="preview-title" style="display:none">
+      <div class="modal-backdrop"></div>
+      <div class="modal-panel preview-panel">
+        <div class="preview-head">
+          <h3 id="preview-title" class="modal-title">预览</h3>
+          <button id="preview-close" type="button" class="secondary small">关闭</button>
+        </div>
+        <div id="preview-body" class="preview-body"></div>
+      </div>
+    </div>
+
     <script src="/static/app.js"></script>
     {% block extra_script %}{% endblock %}
   </body>

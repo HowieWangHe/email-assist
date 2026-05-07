@@ -363,6 +363,8 @@ def test_fastapi_renders_index_and_settings_pages(tmp_path):
     assert "创建时间" in index.text
     assert "归档" in index.text
     assert "删除" in index.text
+    assert "<span>创建调研任务</span>" not in index.text
+    assert "<span>连接配置</span>" not in index.text
     assert settings.status_code == 200
     assert "连接配置" in settings.text
 
@@ -445,7 +447,83 @@ def test_fastapi_renders_new_campaign_and_campaign_detail_pages(tmp_path):
     assert "vendor@example.com" in detail.text
     assert "reply summary" in detail.text
     assert "发送与追踪" in detail.text
-    assert "资料处理" in detail.text
+    assert "资料工作台" in detail.text
+    assert "解析所有回复附件" in detail.text
+    assert "AI 识别待处理附件" in detail.text
+    assert "生成 Excel + ZIP" in detail.text
+    assert "本地解析附件" not in detail.text
+
+
+def test_fastapi_previews_downloads_and_reveals_reply_files(tmp_path, monkeypatch):
+    app = create_app(data_dir=tmp_path)
+    client = TestClient(app)
+    campaign = Campaign(
+        id="c1",
+        name="May inquiry",
+        subject="RFQ",
+        body_template="Please quote.",
+        deadline=datetime.now(timezone.utc) + timedelta(days=1),
+        reminder_strategy=ReminderStrategy.MANUAL_CONFIRM,
+    )
+    body_path = tmp_path / "campaigns" / "c1" / "recipients" / "r1" / "replies" / "m1" / "body.txt"
+    raw_path = body_path.with_name("raw.eml")
+    attachment_path = body_path.parent / "attachments" / "quote.txt"
+    attachment_path.parent.mkdir(parents=True)
+    body_path.write_text("Line one\nLine two", encoding="utf-8")
+    raw_path.write_text("raw", encoding="utf-8")
+    attachment_path.write_text("quoted delivery date: Friday", encoding="utf-8")
+    app.state.database.save_campaign(campaign)
+    app.state.database.save_received_messages(
+        [
+            ReceivedMessage(
+                id="m1",
+                campaign_id="c1",
+                recipient_id="r1",
+                from_email="vendor@example.com",
+                subject="Re: RFQ",
+                message_id="<reply@example.com>",
+                body_path=body_path,
+                raw_path=raw_path,
+                confidence="high",
+                body_summary="Line one",
+            )
+        ]
+    )
+    app.state.database.save_received_attachments(
+        [
+            ReceivedAttachment(
+                id="a1",
+                campaign_id="c1",
+                recipient_id="r1",
+                message_id="<reply@example.com>",
+                filename="quote.txt",
+                path=attachment_path,
+                content_type="text/plain",
+            )
+        ]
+    )
+    captured = {}
+
+    def fake_run(command, check=False):
+        captured["command"] = command
+        captured["check"] = check
+
+    monkeypatch.setattr("app.web.subprocess.run", fake_run)
+
+    body = client.get("/api/campaigns/c1/received-messages/m1/body")
+    preview = client.get("/api/campaigns/c1/received-attachments/a1/preview")
+    download = client.get("/api/campaigns/c1/received-attachments/a1/download")
+    reveal = client.post("/api/campaigns/c1/received-attachments/a1/reveal")
+
+    assert body.status_code == 200
+    assert body.json()["body"] == "Line one\nLine two"
+    assert preview.status_code == 200
+    assert preview.json()["kind"] == "text"
+    assert "quoted delivery date" in preview.json()["text"]
+    assert download.status_code == 200
+    assert download.text == "quoted delivery date: Friday"
+    assert reveal.status_code == 200
+    assert captured["command"] == ["open", "-R", str(attachment_path)]
 
 
 def test_fastapi_archives_and_deletes_campaign(tmp_path):

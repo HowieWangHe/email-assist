@@ -36,22 +36,10 @@
           收取并匹配回复
         </button>
       </div>
-      <div class="action-group">
-        <span class="action-label">资料处理</span>
-        <button id="process-button" type="button" class="secondary small">本地解析附件</button>
-        <button id="ai-process-button" type="button" class="secondary small">AI 识别附件</button>
-        <button id="export-button" type="button" class="secondary small">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          导出资料包
-        </button>
-      </div>
       {% else %}
       <div class="action-group">
-        <span class="action-label">资料处理</span>
-        <button id="export-button" type="button" class="secondary small">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          导出资料包
-        </button>
+        <span class="action-label">只读</span>
+        <span class="status-pill archived">可查看与导出</span>
       </div>
       {% endif %}
     </div>
@@ -118,7 +106,7 @@
     <button class="tab" data-tab="sent">已发送 <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ sent_messages | length }}</span></button>
     <button class="tab" data-tab="replies">回复与认领 <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ received_messages | length + review_messages | length }}</span></button>
     <button class="tab" data-tab="attachments">附件 <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ attachments | length + received_attachments | length }}</span></button>
-    <button class="tab" data-tab="results">处理结果 <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ extraction_records | length }}</span></button>
+    <button class="tab" data-tab="workspace">资料工作台 <span style="margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--panel-strong);font-size:.72rem;color:var(--muted)">{{ extraction_records | length }}</span></button>
   </div>
 
   <div class="tab-panel is-active" data-tab-panel="recipients">
@@ -177,7 +165,7 @@
     <section class="panel table-wrap">
       <div class="section-head"><h2>已匹配回复</h2></div>
       <table>
-        <thead><tr><th>回复发件人</th><th>主题</th><th>摘要</th><th>置信度</th><th>正文路径</th></tr></thead>
+        <thead><tr><th>回复发件人</th><th>主题</th><th>摘要</th><th>置信度</th><th>操作</th></tr></thead>
         <tbody>
           {% for message in received_messages %}
           <tr>
@@ -185,7 +173,12 @@
             <td>{{ message.subject }}</td>
             <td class="summary-cell">{{ message.body_summary or "—" }}</td>
             <td>{{ message.confidence }}</td>
-            <td class="cell-mono cell-truncate" title="{{ message.body_path }}">{{ message.body_path }}</td>
+            <td>
+              <div class="file-actions">
+                <button class="secondary small preview-message" type="button" data-message-id="{{ message.id }}">预览正文</button>
+                <button class="secondary small reveal-message" type="button" data-message-id="{{ message.id }}">访达</button>
+              </div>
+            </td>
           </tr>
           {% else %}
           <tr><td colspan="5">
@@ -234,13 +227,19 @@
     <section class="panel table-wrap">
       <div class="section-head"><h2>任务附件</h2></div>
       <table>
-        <thead><tr><th>文件名</th><th>路径</th><th>类型</th></tr></thead>
+        <thead><tr><th>文件名</th><th>类型</th><th>操作</th></tr></thead>
         <tbody>
           {% for attachment in attachments %}
           <tr>
             <td>{{ attachment.filename }}</td>
-            <td class="cell-mono cell-truncate" title="{{ attachment.path }}">{{ attachment.path }}</td>
             <td><span class="status-pill" style="font-size:.72rem">{{ attachment.content_type }}</span></td>
+            <td>
+              <div class="file-actions">
+                <button class="secondary small preview-file" type="button" data-preview-url="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/preview" data-download-url="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/download" data-title="{{ attachment.filename }}">预览</button>
+                <a class="button secondary small" href="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/download">下载</a>
+                <button class="secondary small reveal-file" type="button" data-reveal-url="/api/campaigns/{{ campaign.id }}/campaign-attachments/{{ attachment.id }}/reveal">访达</button>
+              </div>
+            </td>
           </tr>
           {% else %}
           <tr><td colspan="3">
@@ -256,13 +255,19 @@
     <section class="panel table-wrap" style="margin-top:20px">
       <div class="section-head"><h2>回复附件</h2></div>
       <table>
-        <thead><tr><th>文件名</th><th>路径</th><th>类型</th></tr></thead>
+        <thead><tr><th>文件名</th><th>类型</th><th>操作</th></tr></thead>
         <tbody>
           {% for attachment in received_attachments %}
           <tr>
             <td>{{ attachment.filename }}</td>
-            <td class="cell-mono cell-truncate" title="{{ attachment.path }}">{{ attachment.path }}</td>
             <td><span class="status-pill" style="font-size:.72rem">{{ attachment.content_type }}</span></td>
+            <td>
+              <div class="file-actions">
+                <button class="secondary small preview-file" type="button" data-preview-url="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/preview" data-download-url="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/download" data-title="{{ attachment.filename }}">预览</button>
+                <a class="button secondary small" href="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/download">下载</a>
+                <button class="secondary small reveal-file" type="button" data-reveal-url="/api/campaigns/{{ campaign.id }}/received-attachments/{{ attachment.id }}/reveal">访达</button>
+              </div>
+            </td>
           </tr>
           {% else %}
           <tr><td colspan="3">
@@ -276,23 +281,65 @@
     </section>
   </div>
 
-  <div class="tab-panel" data-tab-panel="results">
-    <section class="panel table-wrap">
+  <div class="tab-panel" data-tab-panel="workspace">
+    <section class="panel">
+      <div class="section-head">
+        <h2>资料工作台</h2>
+        <p class="hint">处理对象是已匹配回复中的附件。先用本地规则解析结构化文件，再按需调用 AI 识别图片、PDF、Word 等附件，最后导出 Excel 汇总和 ZIP 资料包。</p>
+      </div>
+      <div class="workflow-grid">
+        <div class="workflow-step">
+          <p class="workflow-step-title">1. 附件解析</p>
+          <p class="workflow-step-desc">对象：全部回复附件。CSV、XLSX、TXT、MD 会在本地读取；不支持的文件会标记为待 AI。</p>
+          {% if campaign.status != "archived" %}
+          <button id="process-button" type="button" class="secondary small">解析所有回复附件</button>
+          {% else %}
+          <button type="button" class="secondary small" disabled>归档任务不可解析</button>
+          {% endif %}
+        </div>
+        <div class="workflow-step">
+          <p class="workflow-step-title">2. AI 识别</p>
+          <p class="workflow-step-desc">对象：需要图像理解或复杂文档读取的附件。会调用你在设置页配置的 AI API。</p>
+          {% if campaign.status != "archived" %}
+          <button id="ai-process-button" type="button" class="secondary small">AI 识别待处理附件</button>
+          {% else %}
+          <button type="button" class="secondary small" disabled>归档任务不可识别</button>
+          {% endif %}
+        </div>
+        <div class="workflow-step">
+          <p class="workflow-step-title">3. 业务导出</p>
+          <p class="workflow-step-desc">生成 Excel 汇总表，并把已匹配的回复正文与附件打包为 ZIP，供后续分析和归档。</p>
+          <button id="export-button" type="button" class="secondary small">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            生成 Excel + ZIP
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel table-wrap" style="margin-top:20px">
+      <div class="section-head"><h2>处理记录</h2></div>
       <table>
-        <thead><tr><th>处理结果</th><th>状态</th><th>错误</th><th>数据</th></tr></thead>
+        <thead><tr><th>对象</th><th>状态</th><th>错误</th><th>结果</th></tr></thead>
         <tbody>
           {% for record in extraction_records %}
           <tr>
             <td>{{ record.filename }}</td>
             <td><span class="status-pill {{ record.status }}">{{ record.status }}</span></td>
             <td>{% if record.error %}<span style="color:var(--danger);font-size:.82rem">{{ record.error }}</span>{% else %}—{% endif %}</td>
-            <td class="cell-mono cell-truncate" title="{{ record.result_json }}">{{ record.result_json or "—" }}</td>
+            <td>
+              {% if record.result_json %}
+              <button class="secondary small preview-record" type="button" data-title="{{ record.filename }}" data-text="{{ record.result_json }}">查看数据</button>
+              {% else %}
+              —
+              {% endif %}
+            </td>
           </tr>
           {% else %}
           <tr><td colspan="4">
             <div class="empty-state">
               <p class="empty-state-title">暂无处理结果</p>
-              <p class="empty-state-desc">点击「本地解析附件」或「AI 识别附件」开始处理。</p>
+              <p class="empty-state-desc">点击「解析所有回复附件」或「AI 识别待处理附件」开始处理。</p>
             </div>
           </td></tr>
           {% endfor %}
@@ -404,8 +451,100 @@
     });
   });
 
+  document.querySelectorAll('.preview-message').forEach((button) => {
+    button.addEventListener('click', async () => {
+      setLoading(button, true, '读取中');
+      try {
+        const response = await fetch(`/api/campaigns/${campaignId}/received-messages/${button.dataset.messageId}/body`);
+        const result = await response.json();
+        if (!response.ok) {
+          toast(result.error || '读取失败', 'error');
+          setLoading(button, false);
+          return;
+        }
+        openPreview({ title: result.subject || '回复正文', text: result.body || result.summary || '暂无正文' });
+        setLoading(button, false);
+      } catch (e) {
+        toast('网络错误', 'error');
+        setLoading(button, false);
+      }
+    });
+  });
+
+  document.querySelectorAll('.preview-file').forEach((button) => {
+    button.addEventListener('click', async () => {
+      setLoading(button, true, '读取中');
+      try {
+        const response = await fetch(button.dataset.previewUrl);
+        const result = await response.json();
+        if (!response.ok) {
+          toast(result.error || '预览失败', 'error');
+          setLoading(button, false);
+          return;
+        }
+        openPreview({
+          title: button.dataset.title || result.filename || '附件预览',
+          text: result.text || '',
+          message: result.message || '',
+          url: result.kind === 'browser' ? button.dataset.downloadUrl : '',
+          contentType: result.content_type || ''
+        });
+        setLoading(button, false);
+      } catch (e) {
+        toast('网络错误', 'error');
+        setLoading(button, false);
+      }
+    });
+  });
+
+  document.querySelectorAll('.reveal-message').forEach((button) => {
+    button.addEventListener('click', async () => {
+      setLoading(button, true, '定位中');
+      try {
+        const response = await fetch(`/api/campaigns/${campaignId}/received-messages/${button.dataset.messageId}/reveal`, { method: 'POST' });
+        const result = await response.json();
+        if (!response.ok) {
+          toast(result.error || '无法定位文件', 'error');
+          setLoading(button, false);
+          return;
+        }
+        toast('已在访达中显示', 'success');
+        setLoading(button, false);
+      } catch (e) {
+        toast('网络错误', 'error');
+        setLoading(button, false);
+      }
+    });
+  });
+
+  document.querySelectorAll('.reveal-file').forEach((button) => {
+    button.addEventListener('click', async () => {
+      setLoading(button, true, '定位中');
+      try {
+        const response = await fetch(button.dataset.revealUrl, { method: 'POST' });
+        const result = await response.json();
+        if (!response.ok) {
+          toast(result.error || '无法定位文件', 'error');
+          setLoading(button, false);
+          return;
+        }
+        toast('已在访达中显示', 'success');
+        setLoading(button, false);
+      } catch (e) {
+        toast('网络错误', 'error');
+        setLoading(button, false);
+      }
+    });
+  });
+
+  document.querySelectorAll('.preview-record').forEach((button) => {
+    button.addEventListener('click', () => {
+      openPreview({ title: button.dataset.title || '处理结果', text: button.dataset.text || '暂无数据' });
+    });
+  });
+
   const exportButton = document.getElementById('export-button');
-  exportButton.addEventListener('click', async () => {
+  if (exportButton) exportButton.addEventListener('click', async () => {
     setLoading(exportButton, true, '导出中');
     try {
       const response = await fetch(`/api/campaigns/${campaignId}/export`, { method: 'POST' });

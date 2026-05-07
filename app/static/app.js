@@ -76,6 +76,43 @@ function setLoading(btn, loading = true, originalText = null) {
   }
 }
 
+/* ===== Preview modal ===== */
+function openPreview({ title = '预览', text = '', message = '', url = '', contentType = '' } = {}) {
+  const modal = document.getElementById('preview-modal');
+  const titleEl = document.getElementById('preview-title');
+  const bodyEl = document.getElementById('preview-body');
+  const closeBtn = document.getElementById('preview-close');
+  titleEl.textContent = title;
+  bodyEl.innerHTML = '';
+
+  if (text) {
+    const pre = document.createElement('pre');
+    pre.textContent = text;
+    bodyEl.appendChild(pre);
+  } else if (url && contentType.startsWith('image/')) {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = title;
+    bodyEl.appendChild(img);
+  } else if (url && contentType === 'application/pdf') {
+    const frame = document.createElement('iframe');
+    frame.src = url;
+    frame.title = title;
+    bodyEl.appendChild(frame);
+  } else {
+    const p = document.createElement('p');
+    p.textContent = message || '该文件暂不支持预览。';
+    bodyEl.appendChild(p);
+  }
+
+  function cleanup() {
+    modal.style.display = 'none';
+    closeBtn.onclick = null;
+  }
+  closeBtn.onclick = cleanup;
+  modal.style.display = 'flex';
+}
+
 /* ===== Sidebar active state ===== */
 function highlightNav() {
   const path = window.location.pathname;
